@@ -1,0 +1,94 @@
+﻿using CIE.AspNetCore.Authentication.Resources;
+using System;
+using System.IO;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
+
+namespace CIE.AspNetCore.Authentication.Helpers
+{
+    public static class X509Helpers
+    {
+        /// <summary>
+        /// Adds the certificate headers.
+        /// </summary>
+        /// <param name="x509RawBase64Certificate">The X509 raw base64 certificate.</param>
+        /// <returns></returns>
+        public static string AddCertificateHeaders(string x509RawBase64Certificate)
+            => @$"-----BEGIN CERTIFICATE-----
+                  {x509RawBase64Certificate}
+                  -----END CERTIFICATE-----";
+
+        /// <summary>
+        /// Get certificate from file path and password
+        /// </summary>
+        /// <param name="certFilePath"></param>
+        /// <param name="certPassword"></param>
+        /// <returns></returns>
+        public static X509Certificate2 GetCertificateFromFile(string certFilePath, string certPassword)
+        {
+            BusinessValidation.ValidationNotNullNotWhitespace(certFilePath, ErrorLocalization.CertificatePathNullOrEmpty);
+            BusinessValidation.ValidationNotNullNotWhitespace(certPassword, ErrorLocalization.CertificatePasswordNullOrEmpty);
+
+            return new X509Certificate2(certFilePath, 
+                certPassword, 
+                X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.Exportable);
+        }
+
+        /// <summary>
+        /// Get certificate from file path and password
+        /// </summary>
+        /// <param name="certFilePath"></param>
+        /// <param name="certPassword"></param>
+        /// <returns></returns>
+        public static X509Certificate2 GetCertificateFromStrings(string certificateString64, string certPassword)
+        {
+            BusinessValidation.ValidationNotNullNotWhitespace(certificateString64, ErrorLocalization.CertificateRawStringNullOrEmpty);
+            BusinessValidation.ValidationNotNullNotWhitespace(certPassword, ErrorLocalization.CertificatePasswordNullOrEmpty);
+            var certificateBytes = Convert.FromBase64String(certificateString64);
+            return new X509Certificate2(certificateBytes, certPassword);
+        }
+
+
+        /// <summary>
+        /// Get certificate from the store
+        /// </summary>
+        /// <param name="storeLocation"></param>
+        /// <param name="storeName"></param>
+        /// <param name="findType"></param>
+        /// <param name="findValue">Must be a string or a DateTime, depending on findType</param>
+        /// <param name="validOnly">Must be false if testing with a self-signed certificate</param>
+        /// <returns></returns>
+        public static X509Certificate2 GetCertificateFromStore(StoreLocation storeLocation, StoreName storeName, X509FindType findType, object findValue, bool validOnly)
+        {
+            BusinessValidation.ValidationNotNullNotWhitespace(findValue.ToString(), ErrorLocalization.CertificateFindValueNullOrEmpty);
+            using X509Store store = new X509Store(storeName, storeLocation);
+            store.Open(OpenFlags.ReadOnly | OpenFlags.OpenExistingOnly);
+            X509Certificate2Collection coll = store.Certificates.Find(findType, findValue.ToString(), validOnly);
+
+            X509Certificate2 certificate = null;
+            if (coll.Count > 0)
+            {
+                certificate = coll[0];
+            }
+
+            BusinessValidation.ValidationNotNull(certificate, ErrorLocalization.CertificateNotFound);
+
+            return certificate;
+        }
+
+        /// <summary>
+        /// Creates the signature.
+        /// </summary>
+        /// <param name="payload">The payload.</param>
+        /// <param name="certificate">The certificate.</param>
+        /// <returns></returns>
+        public static string CreateSignature(this string payload, X509Certificate2 certificate)
+        {
+            using var rsa = certificate.GetRSAPrivateKey();
+            using var shaHash = SHA256.Create();
+            var hash = shaHash.ComputeHash(Encoding.UTF8.GetBytes(payload));
+            return Convert.ToBase64String(rsa.SignHash(hash, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1), Base64FormattingOptions.None);
+        }
+    }
+}
