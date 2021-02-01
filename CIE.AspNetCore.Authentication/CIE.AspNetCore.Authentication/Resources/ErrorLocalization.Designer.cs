@@ -61,24 +61,6 @@ namespace CIE.AspNetCore.Authentication.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Autenticazione fallita per ripetuta sottomissione di credenziali errate (superato numero  tentativi secondo le policy adottate).
-        /// </summary>
-        public static string _19 {
-            get {
-                return ResourceManager.GetString("19", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Utente privo di credenziali compatibili con il livello richiesto dal fornitore del servizio.
-        /// </summary>
-        public static string _20 {
-            get {
-                return ResourceManager.GetString("20", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Timeout durante l’autenticazione utente.
         /// </summary>
         public static string _21 {
@@ -88,7 +70,7 @@ namespace CIE.AspNetCore.Authentication.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Utente nega il consenso all’invio di dati al SP in caso di sessione vigente.
+        ///   Looks up a localized string similar to Utente sceglie di non proseguire con l’invio degli attributi.
         /// </summary>
         public static string _22 {
             get {
@@ -97,7 +79,7 @@ namespace CIE.AspNetCore.Authentication.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Utente con identità sospesa/revocata o con credenziali bloccate.
+        ///   Looks up a localized string similar to Utente con CIE scaduta/revocata.
         /// </summary>
         public static string _23 {
             get {

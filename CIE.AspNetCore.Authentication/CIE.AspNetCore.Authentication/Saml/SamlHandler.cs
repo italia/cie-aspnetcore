@@ -184,10 +184,6 @@ namespace CIE.AspNetCore.Authentication.Saml
                 {
                     switch (errorCode)
                     {
-                        case 19:
-                            throw new Exception(ErrorLocalization._19);
-                        case 20:
-                            throw new Exception(ErrorLocalization._20);
                         case 21:
                             throw new Exception(ErrorLocalization._21);
                         case 22:

@@ -117,20 +117,14 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="19" xml:space="preserve">
-    <value>Autenticazione fallita per ripetuta sottomissione di credenziali errate (superato numero  tentativi secondo le policy adottate)</value>
-  </data>
-  <data name="20" xml:space="preserve">
-    <value>Utente privo di credenziali compatibili con il livello richiesto dal fornitore del servizio</value>
-  </data>
   <data name="21" xml:space="preserve">
     <value>Timeout durante l’autenticazione utente</value>
   </data>
   <data name="22" xml:space="preserve">
-    <value>Utente nega il consenso all’invio di dati al SP in caso di sessione vigente</value>
+    <value>Utente sceglie di non proseguire con l’invio degli attributi</value>
   </data>
   <data name="23" xml:space="preserve">
-    <value>Utente con identità sospesa/revocata o con credenziali bloccate</value>
+    <value>Utente con CIE scaduta/revocata</value>
   </data>
   <data name="25" xml:space="preserve">
     <value>Processo di autenticazione annullato dall’utente</value>
