@@ -24,9 +24,9 @@ namespace CIE.AspNetCore.Authentication.Saml
         };
         private static readonly List<string> listAuthRefValid = new List<string>
         {
-            SamlConst.CieL1,
-            SamlConst.CieL2,
-            SamlConst.CieL3
+            SamlConst.SpidL1,
+            SamlConst.SpidL2,
+            SamlConst.SpidL3
         };
 
         /// <summary>
@@ -344,7 +344,7 @@ namespace CIE.AspNetCore.Authentication.Saml
             BusinessValidation.ValidationNotNull(response.GetAssertion().GetAuthnStatement().AuthnContext.ItemsElementName, ErrorFields.AuthnContext);
             BusinessValidation.ValidationCondition(() => response.GetAssertion().GetAuthnStatement().AuthnContext.GetAuthnContextClassRef() == null, string.Format(ErrorLocalization.NotSpecified, "AuthnStatement.AuthnContext.AuthnContextClassRef"));
             BusinessValidation.ValidationCondition(() => string.IsNullOrWhiteSpace(response.GetAssertion().GetAuthnStatement().AuthnContext.GetAuthnContextClassRef()), string.Format(ErrorLocalization.Missing, "AuthnStatement.AuthnContext.AuthnContextClassRef"));
-            BusinessValidation.ValidationCondition(() => !response.GetAssertion().GetAuthnStatement().AuthnContext.GetAuthnContextClassRef().Equals(SamlConst.CieL2), string.Format(ErrorLocalization.ParameterNotValid, ErrorFields.AuthnContextClassRef));
+            BusinessValidation.ValidationCondition(() => !response.GetAssertion().GetAuthnStatement().AuthnContext.GetAuthnContextClassRef().Equals(request.RequestedAuthnContext.Items[0]), string.Format(ErrorLocalization.ParameterNotValid, ErrorFields.AuthnContextClassRef));
 
             BusinessValidation.ValidationCondition(() => !listAuthRefValid.Contains(response.GetAssertion().GetAuthnStatement().AuthnContext.GetAuthnContextClassRef()), string.Format(ErrorLocalization.ParameterNotValid, ErrorFields.AuthnContextClassRef));
         }

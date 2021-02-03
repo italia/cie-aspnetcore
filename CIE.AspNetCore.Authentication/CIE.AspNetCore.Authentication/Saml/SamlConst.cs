@@ -20,9 +20,9 @@
         public static string samlp = nameof(samlp);
         public static string saml = nameof(saml);
         public static string Saml2Assertion = "urn:oasis:names:tc:SAML:2.0:assertion";
-        public static string CieL3 = "https://www.cie.gov.it/CieL3";
-        public static string CieL1 = "https://www.cie.gov.it/CieL1";
-        public static string CieL2 = "https://www.cie.gov.it/CieL2";
+        public static string SpidL3 = "https://www.spid.gov.it/SpidL3";
+        public static string SpidL1 = "https://www.spid.gov.it/SpidL1";
+        public static string SpidL2 = "https://www.spid.gov.it/SpidL2";
         public static string Method = "urn:oasis:names:tc:SAML:2.0:cm:bearer";
         public static string name = nameof(name);
         public static string familyName = nameof(familyName);
