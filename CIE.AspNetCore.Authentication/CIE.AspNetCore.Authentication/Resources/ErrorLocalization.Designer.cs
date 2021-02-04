@@ -205,7 +205,7 @@ namespace CIE.AspNetCore.Authentication.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Cookie &apos;CIE-Properties&apos; mancante, e&apos; necessario effettuare una nuova login.
+        ///   Looks up a localized string similar to Cookie relativo alla sessione di login mancante, e&apos; necessario effettuare una nuova login.
         /// </summary>
         public static string CiePropertiesNotFound {
             get {

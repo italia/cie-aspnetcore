@@ -589,12 +589,12 @@ namespace CIE.AspNetCore.Authentication
 
         public static void Save(this AuthenticationProperties properties, HttpResponse response, ISecureDataFormat<AuthenticationProperties> encryptor)
         {
-            response.Cookies.Append("CIE-Properties", encryptor.Protect(properties));
+            response.Cookies.Append(CieDefaults.CookieName, encryptor.Protect(properties), new CookieOptions() { SameSite = SameSiteMode.None });
         }
 
         public static void Load(this AuthenticationProperties properties, HttpRequest request, ISecureDataFormat<AuthenticationProperties> encryptor)
         {
-            var cookie = request.Cookies["CIE-Properties"];
+            var cookie = request.Cookies[CieDefaults.CookieName];
             BusinessValidation.ValidationNotNull(cookie, ErrorLocalization.CiePropertiesNotFound);
             AuthenticationProperties cookieProperties = encryptor.Unprotect(cookie);
             BusinessValidation.ValidationNotNull(cookieProperties, ErrorLocalization.CiePropertiesNotFound);
