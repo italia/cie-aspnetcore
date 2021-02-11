@@ -9,7 +9,7 @@
     <RootNamespace>CIE.AspNetCore.Authentication</RootNamespace>
     <PackageId>CIE.AspNetCore.Authentication</PackageId>
     <PackageTags>cie;aspnetcore;authentication</PackageTags>
-    <PackageProjectUrl>https://github.com/danielegiallonardo/cie-aspnetcore</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/italia/cie-aspnetcore</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageVersion>1.0.1</PackageVersion>
     <Version>1.0.1</Version>
