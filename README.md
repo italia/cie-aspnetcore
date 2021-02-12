@@ -146,3 +146,8 @@ public class CustomCieEvents : CieEvents
 }
 ```
 
+# Compliance
+La libreria è stata oggetto di collaudo da parte dell'Istituto Poligrafico e Zecca dello Stato, ha superato tutti i test di [spid-saml-check](https://github.com/italia/spid-saml-check) ed è compliant con le direttive specificate nel manuale operativo di CIE.
+
+# Authors
+* [Daniele Giallonardo](https://github.com/danielegiallonardo) (maintainer) - [Stefano Mostarda](https://github.com/sm15455)
