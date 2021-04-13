@@ -5,7 +5,7 @@ using CIE.AspNetCore.Authentication.Saml;
 
 namespace CIE.AspNetCore.Authentication.Events
 {
-    public class RemoteSignOutContext : RemoteAuthenticationContext<CieOptions>
+    public sealed class RemoteSignOutContext : RemoteAuthenticationContext<CieOptions>
     {
         /// <summary>
         /// 

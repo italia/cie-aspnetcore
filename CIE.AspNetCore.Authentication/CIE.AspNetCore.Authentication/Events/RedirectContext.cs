@@ -4,7 +4,7 @@ using CIE.AspNetCore.Authentication.Models;
 
 namespace CIE.AspNetCore.Authentication.Events
 {
-    public class RedirectContext : PropertiesContext<CieOptions>
+    public sealed class RedirectContext : PropertiesContext<CieOptions>
     {
         /// <summary>
         /// Creates a new context object.

@@ -5,7 +5,7 @@ using CIE.AspNetCore.Authentication.Saml;
 
 namespace CIE.AspNetCore.Authentication.Events
 {
-    public class MessageReceivedContext : RemoteAuthenticationContext<CieOptions>
+    public sealed class MessageReceivedContext : RemoteAuthenticationContext<CieOptions>
     {
         /// <summary>
         /// Creates a new context object.

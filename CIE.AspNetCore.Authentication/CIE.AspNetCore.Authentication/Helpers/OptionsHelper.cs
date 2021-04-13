@@ -6,7 +6,7 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace CIE.AspNetCore.Authentication.Helpers
 {
-    static class OptionsHelper
+    internal class OptionsHelper
     {
         internal static CieConfiguration CreateFromConfiguration(IConfiguration configuration)
         {

@@ -6,7 +6,7 @@ using System;
 
 namespace CIE.AspNetCore.Authentication.Events
 {
-    public class AuthenticationFailedContext : RemoteAuthenticationContext<CieOptions>
+    public sealed class AuthenticationFailedContext : RemoteAuthenticationContext<CieOptions>
     {
         /// <summary>
         /// Creates a new context object

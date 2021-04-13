@@ -5,7 +5,7 @@ using System.Net.Http;
 
 namespace CIE.AspNetCore.Authentication.Models
 {
-    public class CiePostConfigureOptions : IPostConfigureOptions<CieOptions>
+    internal class CiePostConfigureOptions : IPostConfigureOptions<CieOptions>
     {
         private readonly IDataProtectionProvider _dp;
 

@@ -5,7 +5,7 @@ using System.Xml;
 
 namespace CIE.AspNetCore.Authentication.Saml
 {
-    public static class SamlTypesExtensions
+    internal static class SamlTypesExtensions
     {
         public static AssertionType GetAssertion(this ResponseType input) 
             => input.Items?.FirstOrDefault() as AssertionType;

@@ -6,7 +6,7 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace CIE.AspNetCore.Authentication.Models
 {
-    public class CieConfiguration
+    public sealed class CieConfiguration
     {
         /// <summary>
         ///  Requests received on this path will cause the handler to invoke SignIn using the SignInScheme.

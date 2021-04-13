@@ -3,7 +3,7 @@
     /// <summary>
     /// Default values related to Cie authentication handler
     /// </summary>
-    public static class CieDefaults
+    public sealed class CieDefaults
     {
         /// <summary>
         /// The default authentication type used when registering the CieHandler.

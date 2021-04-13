@@ -4,7 +4,7 @@ using CIE.AspNetCore.Authentication.Models;
 
 namespace CIE.AspNetCore.Authentication.Events
 {
-    public class AuthenticationSuccessContext : RemoteAuthenticationContext<CieOptions>
+    public sealed class AuthenticationSuccessContext : RemoteAuthenticationContext<CieOptions>
     {
         /// <summary>
         /// Creates a new context object

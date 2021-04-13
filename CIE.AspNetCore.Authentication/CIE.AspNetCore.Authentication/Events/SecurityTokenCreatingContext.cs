@@ -4,7 +4,7 @@ using CIE.AspNetCore.Authentication.Models;
 
 namespace CIE.AspNetCore.Authentication.Events
 {
-    public class SecurityTokenCreatingContext : RemoteAuthenticationContext<CieOptions>
+    public sealed class SecurityTokenCreatingContext : RemoteAuthenticationContext<CieOptions>
     {
         /// <summary>
         /// Creates a <see cref="SecurityTokenValidatedContext"/>

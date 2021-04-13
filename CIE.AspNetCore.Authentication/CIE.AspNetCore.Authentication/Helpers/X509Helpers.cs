@@ -7,7 +7,7 @@ using System.Text;
 
 namespace CIE.AspNetCore.Authentication.Helpers
 {
-    public static class X509Helpers
+    internal static class X509Helpers
     {
         /// <summary>
         /// Get certificate from file path and password
