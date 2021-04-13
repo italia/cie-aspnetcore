@@ -118,6 +118,7 @@ public void ConfigureServices(IServiceCollection services)
         })
         .AddCie(Configuration, o => {
             o.Events.OnTokenCreating = async (s) => await s.HttpContext.RequestServices.GetRequiredService<CustomCieEvents>().TokenCreating(s);
+	    o.Events.OnAuthenticationSuccess = async (s) => await s.HttpContext.RequestServices.GetRequiredService<CustomCieEvents>().AuthenticationSuccess(s);
             o.LoadFromConfiguration(Configuration);
         })
         .AddCookie();
@@ -143,6 +144,19 @@ public class CustomCieEvents : CieEvents
         context.TokenOptions.Certificate = customConfig.Certificate;
 
         return base.TokenCreating(context);
+    }
+    
+    public override Task AuthenticationSuccess(AuthenticationSuccessContext context)
+    {
+        var principal = context.Principal;
+	
+	// Recupero dati provenienti da Cie da ClaimsPrincipal
+        var name = principal.FindFirst(CieClaimTypes.Name);
+        var familyName = principal.FindFirst(CieClaimTypes.FamilyName);
+        var email = principal.FindFirst(CieClaimTypes.Email);
+        var dateOfBirth = principal.FindFirst(CieClaimTypes.DateOfBirth);
+	
+        return base.AuthenticationSuccess(context);
     }
 }
 ```
