@@ -161,6 +161,62 @@ public class CustomCieEvents : CieEvents
 }
 ```
 
+# Error Handling
+La libreria può, in qualunque fase (sia in fase di creazione della Request sia in fase di gestione della Response), sollevare eccezioni. 
+Un tipico scenario è quello in cui vengono ricevuti i codici di errore previsti dal protocollo (n.19, n.20, ecc....), in tal caso la libreria solleva un'eccezione contenente il corrispondente messaggio d'errore localizzato, richiesto dalle specifiche CIE3.0, che è possibile gestire (ad esempio per la visualizzazione) utilizzando il normale flusso previsto per AspNetCore. L'esempio seguente fa uso del middleware di ExceptionHandling di AspNetCore.
+
+```csharp
+public void Configure(IApplicationBuilder app, IHostEnvironment env)
+{
+    ...
+    app.UseExceptionHandler("/Home/Error");
+    ...
+}
+
+.......
+
+// HomeController
+[AllowAnonymous]
+public async Task<IActionResult> Error()
+{
+    var exceptionHandlerPathFeature =
+        HttpContext.Features.Get<IExceptionHandlerPathFeature>();
+
+    string errorMessage = string.Empty;
+
+    if (exceptionHandlerPathFeature?.Error != null)
+    {
+        var messages = FromHierarchy(exceptionHandlerPathFeature?.Error, ex => ex.InnerException)
+            .Select(ex => ex.Message)
+            .ToList();
+        errorMessage = String.Join(" ", messages);
+    }
+
+    return View(new ErrorViewModel
+    {
+        RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier,
+        Message = errorMessage
+    });
+}
+
+private IEnumerable<TSource> FromHierarchy<TSource>(TSource source,
+            Func<TSource, TSource> nextItem,
+            Func<TSource, bool> canContinue)
+{
+    for (var current = source; canContinue(current); current = nextItem(current))
+    {
+        yield return current;
+    }
+}
+
+private IEnumerable<TSource> FromHierarchy<TSource>(TSource source,
+    Func<TSource, TSource> nextItem)
+    where TSource : class
+{
+    return FromHierarchy(source, nextItem, s => s != null);
+}
+```
+
 # Compliance
 La libreria è stata oggetto di collaudo da parte dell'Istituto Poligrafico e Zecca dello Stato, ha superato tutti i test di [spid-saml-check](https://github.com/italia/spid-saml-check) ed è compliant con le direttive specificate nel manuale operativo di CIE.
 
