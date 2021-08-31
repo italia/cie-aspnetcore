@@ -8,6 +8,7 @@ using Microsoft.Extensions.Options;
 using CIE.AspNetCore.Authentication.Helpers;
 using CIE.AspNetCore.Authentication.Models;
 using System;
+using System.Security.Claims;
 
 namespace CIE.AspNetCore.Authentication
 {
@@ -61,6 +62,28 @@ namespace CIE.AspNetCore.Authentication
             });
             builder.Services.AddOptions<CieConfiguration>().Configure(o => OptionsHelper.LoadFromConfiguration(o, configuration));
             return builder.AddRemoteScheme<CieOptions, CieHandler>(authenticationScheme, displayName, configureOptions);
+        }
+
+        /// <summary>
+        /// Finds the first value.
+        /// </summary>
+        /// <param name="principal">The principal.</param>
+        /// <param name="claimType">Type of the claim.</param>
+        /// <returns></returns>
+        public static string FindFirstValue(this ClaimsPrincipal principal, CieClaimTypes claimType)
+        {
+            return principal.FindFirstValue(claimType.Value);
+        }
+
+        /// <summary>
+        /// Finds the first.
+        /// </summary>
+        /// <param name="principal">The principal.</param>
+        /// <param name="claimType">Type of the claim.</param>
+        /// <returns></returns>
+        public static Claim FindFirst(this ClaimsPrincipal principal, CieClaimTypes claimType)
+        {
+            return principal.FindFirst(claimType.Value);
         }
     }
 }

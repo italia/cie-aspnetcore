@@ -1,10 +1,8 @@
-﻿using Microsoft.AspNetCore.Authentication;
+﻿using CIE.AspNetCore.Authentication.Events;
+using CIE.AspNetCore.Authentication.Helpers;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
-using CIE.AspNetCore.Authentication.Events;
-using CIE.AspNetCore.Authentication.Helpers;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 
 namespace CIE.AspNetCore.Authentication.Models
@@ -124,6 +122,14 @@ namespace CIE.AspNetCore.Authentication.Models
         /// </value>
         public bool CacheIdpMetadata { get; set; }
 
+        /// <summary>
+        /// Gets or sets the type of the principal name claim.
+        /// </summary>
+        /// <value>
+        /// The type of the principal name claim.
+        /// </value>
+        public CieClaimTypes PrincipalNameClaimType { get; set; } = CieClaimTypes.FiscalNumber;
+
         public void LoadFromConfiguration(IConfiguration configuration)
         {
             var conf = OptionsHelper.CreateFromConfiguration(configuration);
@@ -131,7 +137,7 @@ namespace CIE.AspNetCore.Authentication.Models
             AllowUnsolicitedLogins = conf.AllowUnsolicitedLogins;
             AssertionConsumerServiceIndex = conf.AssertionConsumerServiceIndex;
             AttributeConsumingServiceIndex = conf.AttributeConsumingServiceIndex;
-            CallbackPath = conf.CallbackPath.HasValue ? conf.CallbackPath: CallbackPath;
+            CallbackPath = conf.CallbackPath.HasValue ? conf.CallbackPath : CallbackPath;
             EntityId = conf.EntityId;
             RemoteSignOutPath = conf.RemoteSignOutPath.HasValue ? conf.RemoteSignOutPath : RemoteSignOutPath;
             SignOutScheme = conf.SignOutScheme;

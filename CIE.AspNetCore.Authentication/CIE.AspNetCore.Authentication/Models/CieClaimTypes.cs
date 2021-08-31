@@ -1,14 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
 namespace CIE.AspNetCore.Authentication.Models
 {
     public sealed class CieClaimTypes
     {
-        public static string Name = nameof(Name);
-        public static string FamilyName = nameof(FamilyName);
-        public static string FiscalNumber = nameof(FiscalNumber);
-        public static string DateOfBirth = nameof(DateOfBirth);
+        private static Dictionary<string, CieClaimTypes> _types = new Dictionary<string, CieClaimTypes>() {
+            { nameof(Name), new CieClaimTypes(nameof(Name)) },
+            { nameof(FamilyName), new CieClaimTypes(nameof(FamilyName)) },
+            { nameof(FiscalNumber), new CieClaimTypes(nameof(FiscalNumber)) },
+            { nameof(DateOfBirth), new CieClaimTypes(nameof(DateOfBirth)) },
+            { nameof(RawFiscalNumber), new CieClaimTypes(nameof(RawFiscalNumber)) },
+        };
+
+        private CieClaimTypes(string value)
+        {
+            Value = value;
+        }
+
+        public string Value { get; private set; }
+
+        public static CieClaimTypes Name { get { return _types[nameof(Name)]; } }
+        public static CieClaimTypes FamilyName { get { return _types[nameof(FamilyName)]; } }
+        public static CieClaimTypes FiscalNumber { get { return _types[nameof(FiscalNumber)]; } }
+        public static CieClaimTypes DateOfBirth { get { return _types[nameof(DateOfBirth)]; } }
+        public static CieClaimTypes RawFiscalNumber { get { return _types[nameof(RawFiscalNumber)]; } }
     }
 }

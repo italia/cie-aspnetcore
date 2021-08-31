@@ -1,7 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
-using CIE.AspNetCore.Authentication.Helpers;
-using CIE.AspNetCore.Authentication.Models;
-using System.Linq;
+﻿using CIE.AspNetCore.Authentication.Models;
+using Microsoft.Extensions.Configuration;
 using System.Security.Cryptography.X509Certificates;
 
 namespace CIE.AspNetCore.Authentication.Helpers
@@ -14,7 +12,8 @@ namespace CIE.AspNetCore.Authentication.Helpers
             var options = new CieConfiguration();
 
             var identityProviderSection = section.GetSection("Provider");
-            if (identityProviderSection != null) {
+            if (identityProviderSection != null)
+            {
                 options.IdentityProvider = new IdentityProvider()
                 {
                     Method = identityProviderSection.GetValue<RequestMethod>("Method"),
@@ -31,7 +30,7 @@ namespace CIE.AspNetCore.Authentication.Helpers
                     SecurityLevel = identityProviderSection.GetValue<int?>("SecurityLevel") ?? 3,
                 };
             }
-           
+
             options.AllowUnsolicitedLogins = section.GetValue<bool?>("AllowUnsolicitedLogins") ?? false;
             options.AssertionConsumerServiceIndex = section.GetValue<ushort?>("AssertionConsumerServiceIndex") ?? 0;
             options.AttributeConsumingServiceIndex = section.GetValue<ushort?>("AttributeConsumingServiceIndex") ?? 0;
@@ -56,10 +55,11 @@ namespace CIE.AspNetCore.Authentication.Helpers
                     var findValue = storeConfiguration.GetValue<string>("FindValue");
                     var validOnly = storeConfiguration.GetValue<bool>("validOnly");
                     options.Certificate = X509Helpers.GetCertificateFromStore(
-                                        StoreLocation.CurrentUser, StoreName.My,
-                                        X509FindType.FindBySubjectName,
+                                        location,
+                                        name,
+                                        findType,
                                         findValue,
-                                        validOnly: false);
+                                        validOnly);
                 }
                 else if (certificateSource == "File")
                 {
@@ -68,7 +68,7 @@ namespace CIE.AspNetCore.Authentication.Helpers
                     var password = storeConfiguration.GetValue<string>("Password");
                     options.Certificate = X509Helpers.GetCertificateFromFile(path, password);
                 }
-                else if(certificateSource == "Raw")
+                else if (certificateSource == "Raw")
                 {
                     var storeConfiguration = certificateSection.GetSection("Raw");
                     var certificate = storeConfiguration.GetValue<string>("Certificate");
