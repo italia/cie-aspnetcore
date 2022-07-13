@@ -29,7 +29,7 @@ namespace CIE.AspNetCore.Authentication
     {
         EventsHandler _eventsHandler;
         RequestGenerator _requestGenerator;
-        IHttpClientFactory _httpClientFactory;
+        readonly IHttpClientFactory _httpClientFactory;
 
         public CieHandler(IOptionsMonitor<CieOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock, IHttpClientFactory httpClientFactory)
             : base(options, logger, encoder, clock)
@@ -128,15 +128,11 @@ namespace CIE.AspNetCore.Authentication
             AuthenticationProperties properties = new AuthenticationProperties();
             properties.Load(Request, Options.StateDataFormat);
 
-            var (id, message) = await ExtractInfoFromAuthenticationResponse();
+            (string id, ResponseType message, string serializedResponse) = await ExtractInfoFromAuthenticationResponse();
 
             try
             {
                 var request = properties.GetAuthenticationRequest();
-
-                var validationMessageResult = await ValidateAuthenticationResponse(message, request, properties);
-                if (validationMessageResult != null)
-                    return validationMessageResult;
 
                 var responseMessageReceivedResult = await _eventsHandler.HandleAuthenticationResponseMessageReceived(Context, Scheme, Options, properties, message);
                 if (responseMessageReceivedResult.Result != null)
@@ -145,6 +141,10 @@ namespace CIE.AspNetCore.Authentication
                 }
                 message = responseMessageReceivedResult.ProtocolMessage;
                 properties = responseMessageReceivedResult.Properties;
+
+                var validationMessageResult = await ValidateAuthenticationResponse(message, request, properties, serializedResponse);
+                if (validationMessageResult != null)
+                    return validationMessageResult;
 
                 var correlationValidationResult = ValidateCorrelation(properties);
                 if (correlationValidationResult != null)
@@ -222,14 +222,14 @@ namespace CIE.AspNetCore.Authentication
 
         protected virtual async Task<bool> HandleRemoteSignOutAsync()
         {
-            var (id, message) = await ExtractInfoFromSignOutResponse();
+            var (id, message, serializedResponse) = await ExtractInfoFromSignOutResponse();
 
             AuthenticationProperties requestProperties = new AuthenticationProperties();
             requestProperties.Load(Request, Options.StateDataFormat);
 
             var logoutRequest = requestProperties.GetLogoutRequest();
 
-            var validSignOut = ValidateSignOutResponse(message, logoutRequest);
+            var validSignOut = ValidateSignOutResponse(message, logoutRequest, serializedResponse);
             if (!validSignOut)
                 return false;
 
@@ -255,7 +255,7 @@ namespace CIE.AspNetCore.Authentication
             return true;
         }
 
-        private async Task<HandleRequestResult> ValidateAuthenticationResponse(ResponseType response, AuthnRequestType request, AuthenticationProperties properties)
+        private async Task<HandleRequestResult> ValidateAuthenticationResponse(ResponseType response, AuthnRequestType request, AuthenticationProperties properties, string serializedResponse)
         {
             if (response == null)
             {
@@ -276,12 +276,12 @@ namespace CIE.AspNetCore.Authentication
 
             var metadataIdp = await DownloadMetadataIDP(idp.OrganizationUrlMetadata);
 
-            response.ValidateAuthnResponse(request, metadataIdp);
+            response.ValidateAuthnResponse(request, metadataIdp, serializedResponse);
             return null;
         }
 
         private static readonly XmlSerializer entityDescriptorSerializer = new(typeof(EntityDescriptor));
-        private static ConcurrentDictionary<string, string> metadataCache = new ConcurrentDictionary<string, string>();
+        private static readonly ConcurrentDictionary<string, string> metadataCache = new ConcurrentDictionary<string, string>();
         private async Task<EntityDescriptor> DownloadMetadataIDP(string urlMetadataIdp)
         {
             string xml = null;
@@ -361,7 +361,7 @@ namespace CIE.AspNetCore.Authentication
             return (returnedPrincipal, new DateTimeOffset(idpAuthnResponse.IssueInstant), new DateTimeOffset(idpAuthnResponse.GetAssertion().Subject.GetSubjectConfirmation().SubjectConfirmationData.NotOnOrAfter));
         }
 
-        private async Task<(string Id, ResponseType Message)> ExtractInfoFromAuthenticationResponse()
+        private async Task<(string Id, ResponseType Message, string serializedResponse)> ExtractInfoFromAuthenticationResponse()
         {
             if (HttpMethods.IsPost(Request.Method)
               && !string.IsNullOrEmpty(Request.ContentType)
@@ -371,15 +371,28 @@ namespace CIE.AspNetCore.Authentication
             {
                 var form = await Request.ReadFormAsync();
 
+                var serializedResponse = Encoding.UTF8.GetString(Convert.FromBase64String(form["SAMLResponse"][0]));
                 return (
                     form["RelayState"].ToString(),
-                    SamlHandler.GetAuthnResponse(form["SAMLResponse"][0])
+                    SamlHandler.GetAuthnResponse(form["SAMLResponse"][0]),
+                    serializedResponse
                 );
             }
-            return (null, null);
+            else if (HttpMethods.IsGet(Request.Method)
+                && Request.Query.ContainsKey("SAMLResponse")
+                && Request.Query.ContainsKey("RelayState"))
+            {
+                var serializedResponse = DecompressString(Request.Query["SAMLResponse"].FirstOrDefault());
+                return (
+                    Request.Query["RelayState"].FirstOrDefault(),
+                    SamlHandler.GetAuthnResponse(serializedResponse),
+                    serializedResponse
+                );
+            }
+            return (null, null, null);
         }
 
-        private async Task<(string Id, LogoutResponseType Message)> ExtractInfoFromSignOutResponse()
+        private async Task<(string Id, LogoutResponseType Message, string serializedResponse)> ExtractInfoFromSignOutResponse()
         {
             if (HttpMethods.IsPost(Request.Method)
               && !string.IsNullOrEmpty(Request.ContentType)
@@ -388,17 +401,38 @@ namespace CIE.AspNetCore.Authentication
             {
                 var form = await Request.ReadFormAsync();
 
+                var serializedResponse = Encoding.UTF8.GetString(Convert.FromBase64String(form["SAMLResponse"][0]));
                 return (
                     form["RelayState"].ToString(),
-                    SamlHandler.GetLogoutResponse(form["SAMLResponse"][0])
+                    SamlHandler.GetLogoutResponse(form["SAMLResponse"][0]),
+                    serializedResponse
                 );
             }
-            return (null, null);
+            else if (HttpMethods.IsGet(Request.Method)
+                && Request.Query.ContainsKey("SAMLResponse")
+                && Request.Query.ContainsKey("RelayState"))
+            {
+                var serializedResponse = DecompressString(Request.Query["SAMLResponse"].FirstOrDefault());
+                return (
+                    Request.Query["RelayState"].FirstOrDefault(),
+                    SamlHandler.GetLogoutResponse(serializedResponse),
+                    serializedResponse
+                );
+            }
+            return (null, null, null);
         }
 
-        private bool ValidateSignOutResponse(LogoutResponseType response, LogoutRequestType request)
+        private static string DecompressString(string value)
         {
-            var valid = response.Status.StatusCode.Value == SamlConst.Success && SamlHandler.ValidateLogoutResponse(response, request);
+            using MemoryStream output = new MemoryStream(Convert.FromBase64String(value));
+            using DeflateStream stream = new DeflateStream(output, CompressionMode.Decompress);
+            using StreamReader reader = new StreamReader(stream, Encoding.UTF8);
+            return reader.ReadToEnd();
+        }
+
+        private bool ValidateSignOutResponse(LogoutResponseType response, LogoutRequestType request, string serializedResponse)
+        {
+            var valid = response.Status.StatusCode.Value == SamlConst.Success && SamlHandler.ValidateLogoutResponse(response, request, serializedResponse);
             if (valid)
             {
                 return true;
@@ -410,7 +444,7 @@ namespace CIE.AspNetCore.Authentication
 
         private class EventsHandler
         {
-            private CieEvents _events;
+            private readonly CieEvents _events;
 
             public EventsHandler(CieEvents events)
             {
@@ -479,8 +513,8 @@ namespace CIE.AspNetCore.Authentication
 
         private class RequestGenerator
         {
-            HttpResponse _response;
-            ILogger _logger;
+            readonly HttpResponse _response;
+            readonly ILogger _logger;
 
             public RequestGenerator(HttpResponse response, ILogger logger)
             {

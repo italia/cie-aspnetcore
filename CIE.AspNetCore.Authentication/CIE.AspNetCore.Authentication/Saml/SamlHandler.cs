@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
-using System.Security.Cryptography.Xml;
 using System.Text;
 using System.Xml;
 using System.Xml.Serialization;
@@ -170,10 +169,11 @@ namespace CIE.AspNetCore.Authentication.Saml
         /// <param name="metadataIdp">The metadata idp.</param>
         /// <exception cref="Exception">
         /// </exception>
-        public static void ValidateAuthnResponse(this ResponseType response, AuthnRequestType request, EntityDescriptor metadataIdp)
+        public static void ValidateAuthnResponse(this ResponseType response, AuthnRequestType request, EntityDescriptor metadataIdp, string serializedResponse)
         {
             // Verify signature
-            var xmlDoc = response.SerializeToXmlDoc();
+            var xmlDoc = new XmlDocument() { PreserveWhitespace = true };
+            xmlDoc.LoadXml(serializedResponse);
 
             BusinessValidation.ValidationCondition(() => response.Status == null, ErrorLocalization.StatusNotValid);
             BusinessValidation.ValidationCondition(() => response.Status.StatusCode == null, ErrorLocalization.StatusCodeNotValid);
@@ -453,9 +453,10 @@ namespace CIE.AspNetCore.Authentication.Saml
         /// <param name="response"></param>
         /// <param name="request"></param>
         /// <returns>True if valid, false otherwise</returns>
-        public static bool ValidateLogoutResponse(LogoutResponseType response, LogoutRequestType request)
+        public static bool ValidateLogoutResponse(LogoutResponseType response, LogoutRequestType request, string serializedResponse)
         {
-            var xmlDoc = response.SerializeToXmlDoc();
+            var xmlDoc = new XmlDocument() { PreserveWhitespace = true };
+            xmlDoc.LoadXml(serializedResponse);
 
             BusinessValidation.ValidationCondition(() => XmlHelpers.VerifySignature(xmlDoc), ErrorLocalization.InvalidSignature);
 
