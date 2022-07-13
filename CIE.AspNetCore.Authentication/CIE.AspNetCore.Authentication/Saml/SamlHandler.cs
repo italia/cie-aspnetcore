@@ -23,10 +23,12 @@ namespace CIE.AspNetCore.Authentication.Saml
         };
         private static readonly List<string> listAuthRefValid = new List<string>
         {
-            SamlConst.SpidL1,
-            SamlConst.SpidL2,
-            SamlConst.SpidL3
+            SamlConst.SpidL + "1",
+            SamlConst.SpidL + "2",
+            SamlConst.SpidL + "3"
         };
+
+        private const int ClockSkewInMinutes = 10;
 
         /// <summary>
         /// Build a signed SAML authentication request.
@@ -92,18 +94,18 @@ namespace CIE.AspNetCore.Authentication.Saml
                 },
                 Conditions = new ConditionsType
                 {
-                    NotBefore = now.ToString(dateTimeFormat),
+                    NotBefore = now.AddMinutes(-ClockSkewInMinutes).ToString(dateTimeFormat),
                     NotBeforeSpecified = true,
-                    NotOnOrAfter = now.AddMinutes(10).ToString(dateTimeFormat),
+                    NotOnOrAfter = now.AddMinutes(ClockSkewInMinutes).ToString(dateTimeFormat),
                     NotOnOrAfterSpecified = true
                 },
                 RequestedAuthnContext = new RequestedAuthnContextType
                 {
-                    Comparison = AuthnContextComparisonType.exact,
+                    Comparison = AuthnContextComparisonType.minimum,
                     ComparisonSpecified = true,
                     Items = new string[1]
                     {
-                        listAuthRefValid[identityProvider.SecurityLevel - 1]
+                        SamlConst.SpidL + identityProvider.SecurityLevel
                     },
                     ItemsElementName = new ItemsChoiceType7[1]
                     {
@@ -188,7 +190,7 @@ namespace CIE.AspNetCore.Authentication.Saml
         /// <param name="metadataIdp">The metadata idp.</param>
         /// <exception cref="Exception">
         /// </exception>
-        public static void ValidateAuthnResponse(this ResponseType response, AuthnRequestType request, EntityDescriptor metadataIdp, string serializedResponse)
+        public static void ValidateAuthnResponse(this ResponseType response, AuthnRequestType request, Saml.IdP.EntityDescriptorType metadataIdp, string serializedResponse)
         {
             // Verify signature
             var xmlDoc = new XmlDocument() { PreserveWhitespace = true };
@@ -222,15 +224,8 @@ namespace CIE.AspNetCore.Authentication.Saml
             BusinessValidation.ValidationCondition(() => response?.GetAssertion() == null, ErrorLocalization.ResponseAssertionNotFound);
             BusinessValidation.ValidationCondition(() => response.GetAssertion()?.Signature == null, ErrorLocalization.AssertionSignatureNotFound);
             BusinessValidation.ValidationCondition(() => response.GetAssertion().Signature.KeyInfo.GetX509Data().GetBase64X509Certificate() != response.Signature.KeyInfo.GetX509Data().GetBase64X509Certificate(), ErrorLocalization.AssertionSignatureDifferent);
-            var metadataXmlDoc = metadataIdp.SerializeToXmlDoc();
-            BusinessValidation.ValidationCondition(() => XmlHelpers.VerifySignature(xmlDoc, metadataXmlDoc), ErrorLocalization.InvalidSignature);
-
-            using var responseCertificate = new X509Certificate2(response.Signature.KeyInfo.GetX509Data().GetRawX509Certificate());
-            using var assertionCertificate = new X509Certificate2(response.GetAssertion()?.Signature.KeyInfo.GetX509Data().GetRawX509Certificate());
-            using var idpCertificate = new X509Certificate2(Convert.FromBase64String(metadataIdp.IDPSSODescriptor.KeyDescriptor.KeyInfo.X509Data.X509Certificate));
-
-            BusinessValidation.ValidationCondition(() => responseCertificate.Thumbprint != idpCertificate.Thumbprint, ErrorLocalization.ResponseSignatureNotValid);
-            BusinessValidation.ValidationCondition(() => assertionCertificate.Thumbprint != idpCertificate.Thumbprint, ErrorLocalization.AssertionSignatureNotValid);
+            //var metadataXmlDoc = metadataIdp.SerializeToXmlDoc();
+            BusinessValidation.ValidationCondition(() => XmlHelpers.VerifySignature(xmlDoc, metadataIdp), ErrorLocalization.InvalidSignature);
 
             BusinessValidation.ValidationCondition(() => response.Version != SamlConst.Version, ErrorLocalization.VersionNotValid);
             BusinessValidation.ValidationNotNullNotWhitespace(response.ID, nameof(response.ID));
@@ -287,7 +282,7 @@ namespace CIE.AspNetCore.Authentication.Saml
 
             BusinessValidation.ValidationCondition(() => response.Issuer == null, ErrorLocalization.IssuerNotSpecified);
             BusinessValidation.ValidationCondition(() => string.IsNullOrWhiteSpace(response.Issuer?.Value), ErrorLocalization.IssuerMissing);
-            BusinessValidation.ValidationCondition(() => !response.Issuer.Value.Equals(metadataIdp.EntityID, StringComparison.InvariantCultureIgnoreCase), ErrorLocalization.IssuerDifferentFromEntityId);
+            BusinessValidation.ValidationCondition(() => !response.Issuer.Value.Equals(metadataIdp.entityID, StringComparison.InvariantCultureIgnoreCase), ErrorLocalization.IssuerDifferentFromEntityId);
 
             //BusinessValidation.ValidationCondition(() => !string.IsNullOrWhiteSpace(response.Issuer.Format) && !response.Issuer.Format.Equals(SamlConst.IssuerFormat), ErrorLocalization.IssuerFormatDifferent);
 
@@ -331,7 +326,7 @@ namespace CIE.AspNetCore.Authentication.Saml
             BusinessValidation.ValidationCondition(() => notOnOrAfter < DateTimeOffset.UtcNow, ErrorLocalization.NotOnOrAfterLessThenRequest);
 
             BusinessValidation.ValidationNotNullNotWhitespace(response.GetAssertion().Issuer?.Value, ErrorFields.Issuer);
-            BusinessValidation.ValidationCondition(() => !response.GetAssertion().Issuer.Value.Equals(metadataIdp.EntityID), string.Format(ErrorLocalization.ParameterNotValid, ErrorFields.Issuer));
+            BusinessValidation.ValidationCondition(() => !response.GetAssertion().Issuer.Value.Equals(metadataIdp.entityID), string.Format(ErrorLocalization.ParameterNotValid, ErrorFields.Issuer));
             //BusinessValidation.ValidationCondition(() => response.GetAssertion().Issuer.Format == null, string.Format(ErrorLocalization.NotSpecified, "Assertion.Issuer.Format"));
             //BusinessValidation.ValidationCondition(() => string.IsNullOrWhiteSpace(response.GetAssertion().Issuer.Format), string.Format(ErrorLocalization.Missing, "Assertion.Issuer.Format"));
             //BusinessValidation.ValidationCondition(() => !response.GetAssertion().Issuer.Format.Equals(request.Issuer.Format), string.Format(ErrorLocalization.ParameterNotValid, ErrorFields.Format));
@@ -468,7 +463,7 @@ namespace CIE.AspNetCore.Authentication.Saml
             var xmlDoc = new XmlDocument() { PreserveWhitespace = true };
             xmlDoc.LoadXml(serializedResponse);
 
-            BusinessValidation.ValidationCondition(() => XmlHelpers.VerifySignature(xmlDoc), ErrorLocalization.InvalidSignature);
+            BusinessValidation.ValidationCondition(() => !XmlHelpers.VerifySignature(xmlDoc), ErrorLocalization.InvalidSignature);
 
             return (response.InResponseTo == request.ID);
         }

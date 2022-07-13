@@ -284,9 +284,9 @@ namespace CIE.AspNetCore.Authentication
             return null;
         }
 
-        private static readonly XmlSerializer entityDescriptorSerializer = new(typeof(EntityDescriptor));
+        private static readonly XmlSerializer entityDescriptorSerializer = new(typeof(Saml.IdP.EntityDescriptorType));
         private static readonly ConcurrentDictionary<string, string> metadataCache = new ConcurrentDictionary<string, string>();
-        private async Task<EntityDescriptor> DownloadMetadataIDP(string urlMetadataIdp)
+        private async Task<Saml.IdP.EntityDescriptorType> DownloadMetadataIDP(string urlMetadataIdp)
         {
             string xml = null;
             if (Options.CacheIdpMetadata
@@ -296,7 +296,9 @@ namespace CIE.AspNetCore.Authentication
             }
             if (string.IsNullOrWhiteSpace(xml))
             {
-                using var client = _httpClientFactory.CreateClient("cie");
+                using var httpClientHandler = new HttpClientHandler();
+                httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
+                using var client = new HttpClient(httpClientHandler);
                 xml = await client.GetStringAsync(urlMetadataIdp);
             }
             if (Options.CacheIdpMetadata
@@ -305,7 +307,7 @@ namespace CIE.AspNetCore.Authentication
                 metadataCache.AddOrUpdate(urlMetadataIdp, xml, (x, y) => xml);
             }
             using var reader = new StringReader(xml);
-            return (EntityDescriptor)entityDescriptorSerializer.Deserialize(reader);
+            return (Saml.IdP.EntityDescriptorType)entityDescriptorSerializer.Deserialize(reader);
         }
 
         private HandleRequestResult ValidateCorrelation(AuthenticationProperties properties)
