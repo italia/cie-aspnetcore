@@ -193,7 +193,11 @@ namespace CIE.AspNetCore.Authentication
 
             var idp = Options.IdentityProvider;
 
-            var securityTokenCreatingContext = await _eventsHandler.HandleSecurityTokenCreatingContext(Context, Scheme, Options, properties, authenticationRequestId);
+            var securityTokenCreatingContext = await _eventsHandler.HandleSecurityTokenCreatingContext(Context,
+                Scheme,
+                Options,
+                properties,
+                authenticationRequestId);
 
             var message = SamlHandler.GetLogoutRequest(
                 authenticationRequestId,
@@ -531,14 +535,15 @@ namespace CIE.AspNetCore.Authentication
             {
                 var messageGuid = messageId.Replace("_", string.Empty);
 
+                var unsignedSerializedMessage = SamlHandler.SerializeMessage(message);
+
                 if (method == RequestMethod.Post)
                 {
-                    var signedSerializedMessage = SamlHandler.SignRequest(message, certificate, messageId);
+                    var signedSerializedMessage = SamlHandler.ConvertToBase64(SamlHandler.SignSerializedDocument(unsignedSerializedMessage, certificate, messageId));
                     await HandlePostRequest(signedSerializedMessage, signOnUrl, messageGuid);
                 }
                 else
                 {
-                    var unsignedSerializedMessage = SamlHandler.SerializeMessage(message);
                     HandleRedirectRequest(unsignedSerializedMessage, certificate, signOnUrl, messageGuid);
                 }
             }

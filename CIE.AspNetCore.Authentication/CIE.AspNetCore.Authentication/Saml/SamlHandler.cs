@@ -114,26 +114,45 @@ namespace CIE.AspNetCore.Authentication.Saml
         }
 
         /// <summary>
-        /// Signs the request.
+        /// Signs the serialized document.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="message">The message.</param>
+        /// <param name="serializedDocument">The serialized document.</param>
         /// <param name="certificate">The certificate.</param>
         /// <param name="uuid">The UUID.</param>
         /// <returns></returns>
-        public static string SignRequest<T>(T message, X509Certificate2 certificate, string uuid) where T : class
+        public static string SignSerializedDocument(string serializedDocument, X509Certificate2 certificate, string uuid)
         {
-            var serializedMessage = SerializeMessage(message);
+            return SignDocumentInternal(serializedDocument, certificate, uuid, 1);
+        }
 
+        /// <summary>
+        /// Signs the serialized metadata.
+        /// </summary>
+        /// <param name="serializedDocument">The serialized document.</param>
+        /// <param name="certificate">The certificate.</param>
+        /// <param name="uuid">The UUID.</param>
+        /// <returns></returns>
+        public static string SignSerializedMetadata(string serializedDocument, X509Certificate2 certificate, string uuid)
+        {
+            return SignDocumentInternal(serializedDocument, certificate, uuid, 0);
+        }
+
+        private static string SignDocumentInternal(string serializedDocument, X509Certificate2 certificate, string uuid, int childIndex)
+        {
             var doc = new XmlDocument();
-            doc.LoadXml(serializedMessage);
+            doc.LoadXml(serializedDocument);
 
             var signature = XmlHelpers.SignXMLDoc(doc, certificate, uuid, SamlConst.SignatureMethod, SamlConst.DigestMethod);
-            doc.DocumentElement.InsertBefore(signature, doc.DocumentElement.ChildNodes[1]);
+            doc.DocumentElement.InsertBefore(signature, doc.DocumentElement.ChildNodes[childIndex]);
 
+            return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" + doc.OuterXml;
+        }
+
+        public static string ConvertToBase64(string message)
+        {
             return Convert.ToBase64String(
-                Encoding.UTF8.GetBytes("<?xml version=\"1.0\" encoding=\"UTF-8\"?>" + doc.OuterXml),
-                Base64FormattingOptions.None);
+                   Encoding.UTF8.GetBytes(message),
+                   Base64FormattingOptions.None);
         }
 
         /// <summary>
@@ -417,29 +436,20 @@ namespace CIE.AspNetCore.Authentication.Saml
         /// <summary>
         /// Get the IdP Logout Response and extract metadata to the returned DTO class
         /// </summary>
-        /// <param name="base64Response"></param>
+        /// <param name="serializedLogoutResponse">The serialized logout response.</param>
         /// <returns></returns>
-        public static LogoutResponseType GetLogoutResponse(string base64Response)
+        /// <exception cref="System.ArgumentNullException">The serializedLogoutResponse parameter can't be null or empty.</exception>
+        /// <exception cref="CIE.AspNetCore.Authentication.Events.AuthenticationFailedContext.Exception"></exception>
+        public static LogoutResponseType GetLogoutResponse(string serializedLogoutResponse)
         {
-            string logoutResponse;
-
-            if (String.IsNullOrEmpty(base64Response))
+            if (String.IsNullOrEmpty(serializedLogoutResponse))
             {
-                throw new ArgumentNullException("The base64Response parameter can't be null or empty.");
+                throw new ArgumentNullException("The serializedLogoutResponse parameter can't be null or empty.");
             }
 
             try
             {
-                logoutResponse = Encoding.UTF8.GetString(Convert.FromBase64String(base64Response));
-            }
-            catch (Exception ex)
-            {
-                throw new ArgumentException("Unable to converto base64 response to ascii string.", ex);
-            }
-
-            try
-            {
-                return DeserializeMessage<LogoutResponseType>(logoutResponse);
+                return DeserializeMessage<LogoutResponseType>(serializedLogoutResponse);
             }
             catch (Exception ex)
             {
