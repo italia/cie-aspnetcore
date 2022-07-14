@@ -225,7 +225,7 @@ namespace CIE.AspNetCore.Authentication.Saml
             BusinessValidation.ValidationCondition(() => response.GetAssertion()?.Signature == null, ErrorLocalization.AssertionSignatureNotFound);
             BusinessValidation.ValidationCondition(() => response.GetAssertion().Signature.KeyInfo.GetX509Data().GetBase64X509Certificate() != response.Signature.KeyInfo.GetX509Data().GetBase64X509Certificate(), ErrorLocalization.AssertionSignatureDifferent);
             //var metadataXmlDoc = metadataIdp.SerializeToXmlDoc();
-            BusinessValidation.ValidationCondition(() => XmlHelpers.VerifySignature(xmlDoc, metadataIdp), ErrorLocalization.InvalidSignature);
+            BusinessValidation.ValidationCondition(() => !XmlHelpers.VerifySignature(xmlDoc, metadataIdp), ErrorLocalization.InvalidSignature);
 
             BusinessValidation.ValidationCondition(() => response.Version != SamlConst.Version, ErrorLocalization.VersionNotValid);
             BusinessValidation.ValidationNotNullNotWhitespace(response.ID, nameof(response.ID));
@@ -421,7 +421,7 @@ namespace CIE.AspNetCore.Authentication.Saml
                     Value = subjectNameIdRemoveText == null ? subjectNameId : subjectNameId.Replace(subjectNameIdRemoveText, String.Empty)
                 },
                 NotOnOrAfterSpecified = true,
-                NotOnOrAfter = now.AddMinutes(10),
+                NotOnOrAfter = now.AddMinutes(ClockSkewInMinutes),
                 Reason = SamlConst.LogoutUserProtocol,
                 SessionIndex = new string[] { authnStatementSessionIndex }
             };

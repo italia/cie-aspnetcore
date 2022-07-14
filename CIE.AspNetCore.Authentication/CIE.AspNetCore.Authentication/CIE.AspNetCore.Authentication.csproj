@@ -11,7 +11,7 @@
     <PackageTags>cie;aspnetcore;authentication</PackageTags>
     <PackageProjectUrl>https://github.com/italia/cie-aspnetcore</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageVersion>1.1.3-prerelease3</PackageVersion>
+    <PackageVersion>1.1.3-prerelease4</PackageVersion>
     <Version>1.1.3</Version>
     <AssemblyVersion>1.1.3</AssemblyVersion>
     <FileVersion>1.1.3</FileVersion>
