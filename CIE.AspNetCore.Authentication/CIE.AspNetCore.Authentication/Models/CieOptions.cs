@@ -1,14 +1,18 @@
 ﻿using CIE.AspNetCore.Authentication.Events;
 using CIE.AspNetCore.Authentication.Helpers;
+using CIE.AspNetCore.Authentication.Models.ServiceProviders;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
 
 namespace CIE.AspNetCore.Authentication.Models
 {
     public class CieOptions : RemoteAuthenticationOptions
     {
+        private readonly List<ServiceProvider> _spMetadata = new();
+
         public CieOptions()
         {
             CallbackPath = "/signin-cie";
@@ -16,6 +20,7 @@ namespace CIE.AspNetCore.Authentication.Models
             // In AAD it sends the cleanup message to a random Reply Url and there's no deterministic way to configure it.
             //  If you manage to get it configured, then you can set RemoteSignOutPath accordingly.
             RemoteSignOutPath = "/signout-cie";
+            ServiceProvidersMetadataEndpointsBasePath = "/metadata-spid";
             Events = new CieEvents();
         }
 
@@ -129,6 +134,22 @@ namespace CIE.AspNetCore.Authentication.Models
         /// The type of the principal name claim.
         /// </value>
         public CieClaimTypes PrincipalNameClaimType { get; set; } = CieClaimTypes.FiscalNumber;
+
+        /// <summary>
+        /// Gets or sets the base path where the configured SP metadata will be exposed.
+        /// </summary>
+        /// <value>
+        /// The SP Metadata Endpoints BasePath.
+        /// </value>
+        public PathString ServiceProvidersMetadataEndpointsBasePath { get; set; }
+
+        /// <summary>
+        /// Gets or sets the collection of the exposed SP metadata.
+        /// </summary>
+        /// <value>
+        /// The collection of the exposed SP metadata.
+        /// </value>
+        public List<ServiceProvider> ServiceProviders { get { return _spMetadata; } }
 
         public void LoadFromConfiguration(IConfiguration configuration)
         {

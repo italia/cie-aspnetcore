@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
 
-namespace CIE.AspNetCore.Authentication
+namespace CIE.AspNetCore.Authentication.Extensions
 {
     internal static class LoggingExtensions
     {

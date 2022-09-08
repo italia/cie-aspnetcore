@@ -9,8 +9,9 @@ using CIE.AspNetCore.Authentication.Helpers;
 using CIE.AspNetCore.Authentication.Models;
 using System;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Builder;
 
-namespace CIE.AspNetCore.Authentication
+namespace CIE.AspNetCore.Authentication.Extensions
 {
     public static class CieExtensions
     {
@@ -62,6 +63,11 @@ namespace CIE.AspNetCore.Authentication
             });
             builder.Services.AddOptions<CieConfiguration>().Configure(o => OptionsHelper.LoadFromConfiguration(o, configuration));
             return builder.AddRemoteScheme<CieOptions, CieHandler>(authenticationScheme, displayName, configureOptions);
+        }
+
+        public static IApplicationBuilder AddSpidSPMetadataEndpoints(this IApplicationBuilder builder)
+        {
+            return builder.UseMiddleware<CieSPMetadataMiddleware>();
         }
 
         /// <summary>
