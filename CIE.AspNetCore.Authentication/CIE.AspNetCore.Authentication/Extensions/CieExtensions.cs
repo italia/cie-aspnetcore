@@ -10,6 +10,7 @@ using CIE.AspNetCore.Authentication.Models;
 using System;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Builder;
+using CIE.AspNetCore.Authentication.Models.ServiceProviders;
 
 namespace CIE.AspNetCore.Authentication.Extensions
 {
@@ -21,16 +22,16 @@ namespace CIE.AspNetCore.Authentication.Extensions
         /// <param name="builder"></param>
         /// <returns></returns>
         public static AuthenticationBuilder AddCie(this AuthenticationBuilder builder, IConfiguration configuration)
-            => builder.AddCie(CieDefaults.AuthenticationScheme, configuration, _ => { });
+            => builder.AddCie(CieDefaults.AuthenticationScheme, o => { o.LoadFromConfiguration(configuration); });
 
-        /// <summary>
+         /// <summary>
         /// Registers the <see cref="CieHandler"/> using the default authentication scheme, display name, and the given options configuration.
         /// </summary>
         /// <param name="builder"></param>
         /// <param name="configureOptions">A delegate that configures the <see cref="CieOptions"/>.</param>
         /// <returns></returns>
-        public static AuthenticationBuilder AddCie(this AuthenticationBuilder builder, IConfiguration configuration, Action<CieOptions> configureOptions)
-            => builder.AddCie(CieDefaults.AuthenticationScheme, configuration, configureOptions);
+        public static AuthenticationBuilder AddCie(this AuthenticationBuilder builder, Action<CieOptions> configureOptions)
+            => builder.AddCie(CieDefaults.AuthenticationScheme, configureOptions);
 
         /// <summary>
         /// Registers the <see cref="CieHandler"/> using the given authentication scheme, default display name, and the given options configuration.
@@ -39,8 +40,30 @@ namespace CIE.AspNetCore.Authentication.Extensions
         /// <param name="authenticationScheme"></param>
         /// <param name="configureOptions">A delegate that configures the <see cref="CieOptions"/>.</param>
         /// <returns></returns>
+        public static AuthenticationBuilder AddCie(this AuthenticationBuilder builder, string authenticationScheme, Action<CieOptions> configureOptions)
+            => builder.AddCie(authenticationScheme, CieDefaults.DisplayName, configureOptions);
+
+        /// <summary>
+        /// Registers the <see cref="CieHandler"/> using the default authentication scheme, display name, and the given options configuration.
+        /// </summary>
+        /// <param name="builder"></param>
+        /// <param name="configureOptions">A delegate that configures the <see cref="CieOptions"/>.</param>
+        /// <returns></returns>
+        /*
+        public static AuthenticationBuilder AddCie(this AuthenticationBuilder builder, IConfiguration configuration, Action<CieOptions> configureOptions)
+            => builder.AddCie(CieDefaults.AuthenticationScheme, configuration, configureOptions);
+        */
+        /// <summary>
+        /// Registers the <see cref="CieHandler"/> using the given authentication scheme, default display name, and the given options configuration.
+        /// </summary>
+        /// <param name="builder"></param>
+        /// <param name="authenticationScheme"></param>
+        /// <param name="configureOptions">A delegate that configures the <see cref="CieOptions"/>.</param>
+        /// <returns></returns>
+        /*
         public static AuthenticationBuilder AddCie(this AuthenticationBuilder builder, string authenticationScheme, IConfiguration configuration, Action<CieOptions> configureOptions)
             => builder.AddCie(authenticationScheme, CieDefaults.DisplayName, configuration, configureOptions);
+        */
 
         /// <summary>
         /// Registers the <see cref="CieHandler"/> using the given authentication scheme, display name, and options configuration.
@@ -50,6 +73,31 @@ namespace CIE.AspNetCore.Authentication.Extensions
         /// <param name="displayName"></param>
         /// <param name="configureOptions">A delegate that configures the <see cref="CieOptions"/>.</param>
         /// <returns></returns>
+        public static AuthenticationBuilder AddCie(this AuthenticationBuilder builder, string authenticationScheme, string displayName, Action<CieOptions> configureOptions)
+        {
+            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IPostConfigureOptions<CieOptions>, CiePostConfigureOptions>());
+            builder.Services.TryAdd(ServiceDescriptor.Singleton<IActionContextAccessor, ActionContextAccessor>());
+            builder.Services.AddHttpClient("cie");
+            builder.Services.TryAddScoped(factory =>
+            {
+                var actionContext = factory.GetService<IActionContextAccessor>().ActionContext;
+                var urlHelperFactory = factory.GetService<IUrlHelperFactory>();
+                return urlHelperFactory.GetUrlHelper(actionContext);
+            });
+            builder.Services.AddOptions<CieOptions>().Configure(configureOptions);
+            builder.Services.TryAddScoped<IServiceProvidersFactory, DefaultServiceProvidersFactory>();
+            return builder.AddRemoteScheme<CieOptions, CieHandler>(authenticationScheme, displayName, configureOptions);
+        }
+
+        /// <summary>
+        /// Registers the <see cref="CieHandler"/> using the given authentication scheme, display name, and options configuration.
+        /// </summary>
+        /// <param name="builder"></param>
+        /// <param name="authenticationScheme"></param>
+        /// <param name="displayName"></param>
+        /// <param name="configureOptions">A delegate that configures the <see cref="CieOptions"/>.</param>
+        /// <returns></returns>
+        /*
         public static AuthenticationBuilder AddCie(this AuthenticationBuilder builder, string authenticationScheme, string displayName, IConfiguration configuration, Action<CieOptions> configureOptions)
         {
             builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IPostConfigureOptions<CieOptions>, CiePostConfigureOptions>());
@@ -64,8 +112,16 @@ namespace CIE.AspNetCore.Authentication.Extensions
             builder.Services.AddOptions<CieConfiguration>().Configure(o => OptionsHelper.LoadFromConfiguration(o, configuration));
             return builder.AddRemoteScheme<CieOptions, CieHandler>(authenticationScheme, displayName, configureOptions);
         }
+        */
 
-        public static IApplicationBuilder AddSpidSPMetadataEndpoints(this IApplicationBuilder builder)
+        public static AuthenticationBuilder AddServiceProvidersFactory<T>(this AuthenticationBuilder builder)
+            where T : class, IServiceProvidersFactory
+        {
+            builder.Services.AddScoped<IServiceProvidersFactory, T>();
+            return builder;
+        }
+
+        public static IApplicationBuilder AddCieSPMetadataEndpoints(this IApplicationBuilder builder)
         {
             return builder.UseMiddleware<CieSPMetadataMiddleware>();
         }

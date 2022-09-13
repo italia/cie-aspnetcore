@@ -16,13 +16,13 @@ namespace CIE.AspNetCore.Authentication.Models.ServiceProviders
         ContactKind GetContactKind();
         ContactTypeType ContactType { get; set; }
         (bool, string) Validate();
-
         Saml.SP.ContactType GetContactForXml(ServiceProvider sp);
     }
 
     public abstract class BaseContactPerson : IContactPerson
     {
         private string _province;
+        private string[] _nace2codes;
 
         public string Municipality { get; set; }
         public string Province { get { return Country != "IT" ? "EE" : _province; } set { _province = value; } }
@@ -31,9 +31,6 @@ namespace CIE.AspNetCore.Authentication.Models.ServiceProviders
         public string[] EmailAddress { get; set; }
         public string[] TelephoneNumber { get; set; }
         public ContactTypeType ContactType { get; set; }
-
-        private string[] _nace2codes;
-
         public string VATNumber { get; set; }
         public string FiscalCode { get; set; }
         public string[] NACE2Codes { get { return _nace2codes; } set { _nace2codes = value; } }
@@ -46,22 +43,37 @@ namespace CIE.AspNetCore.Authentication.Models.ServiceProviders
 
         public Saml.SP.ContactType GetContactForXml(ServiceProvider sp)
         {
-            var elements = GetSpecificElements();
-            elements.Add(XmlHelpers.GetXmlElement(Saml.SamlConst.cie, Saml.SamlConst.cieNamespace, GetContactKind().ToString()));
+            //the code order is strange because spid-sp-test require to respect items order 
+            var elements = new List<ItemsChoiceType7>();
+            var values = new List<string>();
+            elements.Add(GetContactKind() == ContactKind.Private ? ItemsChoiceType7.Private : ItemsChoiceType7.Public);
+            values.Add(""); //Private and Public have no value
+            var (specElements, specValues) = GetSpecificElements();
+            elements.AddRange(specElements);
+            values.AddRange(specValues);
             if (!string.IsNullOrWhiteSpace(VATNumber))
-                elements.Add(XmlHelpers.GetXmlElement(Saml.SamlConst.cie, Saml.SamlConst.cieNamespace, ItemsChoiceType7.VATNumber.ToString(), VATNumber));
+            {
+                elements.Add(ItemsChoiceType7.VATNumber);
+                values.Add(this.VATNumber);
+            }
             if (!string.IsNullOrWhiteSpace(FiscalCode))
-                elements.Add(XmlHelpers.GetXmlElement(Saml.SamlConst.cie, Saml.SamlConst.cieNamespace, ItemsChoiceType7.FiscalCode.ToString(), FiscalCode));
+            {
+                elements.Add(ItemsChoiceType7.FiscalCode);
+                values.Add(this.FiscalCode);
+            }
             if (NACE2Codes.Length > 0)
                 foreach (var code in NACE2Codes)
-                    elements.Add(XmlHelpers.GetXmlElement(Saml.SamlConst.cie, Saml.SamlConst.cieNamespace, ItemsChoiceType7.NACE2Code.ToString(), code));
-
+                {
+                    elements.Add(ItemsChoiceType7.NACE2Code);
+                    values.Add(code);
+                }
 
             var extensions = new Saml.SP.ContactPersonSPExtensionType()
             {
+                Items = values.ToArray(),
+                ItemsElementName = elements.ToArray(),
                 Municipality = this.Municipality,
-                Country = this.Country,
-                Any = elements.ToArray()
+                Country = this.Country
             };
 
             if (!string.IsNullOrEmpty(this.Province))
@@ -81,11 +93,13 @@ namespace CIE.AspNetCore.Authentication.Models.ServiceProviders
         {
             if (string.IsNullOrWhiteSpace(Municipality))
                 return (false, $"No {nameof(Municipality)} are specified");
+            if (EmailAddress.Length == 0 || EmailAddress.Length == 1 && string.IsNullOrEmpty(EmailAddress[0]))
+                return (false, $"No {nameof(EmailAddress)} are specified");
 
             return SpecificValidate();
         }
 
-        public abstract List<XmlElement> GetSpecificElements();
+        public abstract (List<ItemsChoiceType7>, List<string>) GetSpecificElements();
 
         public abstract (bool, string) SpecificValidate();
 
@@ -111,17 +125,15 @@ namespace CIE.AspNetCore.Authentication.Models.ServiceProviders
             return (true, "");
         }
 
-        public override List<XmlElement> GetSpecificElements()
+        public override (List<ItemsChoiceType7>, List<string>) GetSpecificElements()
         {
-            var elements = new List<XmlElement>();
 
-            return elements;
+            return (new List<ItemsChoiceType7>(), new List<string>());
         }
     }
 
     public class PublicContactPerson : BaseContactPerson
     {
-
         public string IPACode { get; set; }
         public string IPACategory { get; set; }
 
@@ -138,15 +150,20 @@ namespace CIE.AspNetCore.Authentication.Models.ServiceProviders
             return (true, "");
         }
 
-        public override List<XmlElement> GetSpecificElements()
+        public override (List<ItemsChoiceType7>, List<string>) GetSpecificElements()
         {
-            var elements = new List<XmlElement>();
+            var elements = new List<ItemsChoiceType7>();
+            var values = new List<string>();
 
-            elements.Add(XmlHelpers.GetXmlElement(Saml.SamlConst.cie, Saml.SamlConst.cieNamespace, ItemsChoiceType7.IPACode.ToString(), IPACode));
+            elements.Add(ItemsChoiceType7.IPACode);
+            values.Add(this.IPACode);
             if (!string.IsNullOrWhiteSpace(IPACategory))
-                elements.Add(XmlHelpers.GetXmlElement(Saml.SamlConst.cie, Saml.SamlConst.cieNamespace, ItemsChoiceType7.IPACategory.ToString(), IPACategory));
+            {
+                elements.Add(ItemsChoiceType7.IPACategory);
+                values.Add(this.IPACategory);
+            }
 
-            return elements;
+            return (elements, values);
         }
     }
 }

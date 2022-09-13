@@ -37,10 +37,11 @@ namespace CIE.AspNetCore.WebApp
                     o.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
                     o.DefaultChallengeScheme = CieDefaults.AuthenticationScheme;
                 })
-                .AddCie(Configuration, o => {
-                    o.Events.OnTokenCreating = async (s) => await s.HttpContext.RequestServices.GetRequiredService<CustomCieEvents>().TokenCreating(s);
+                .AddCie(o => {
                     o.LoadFromConfiguration(Configuration);
+                    o.Events.OnTokenCreating = async (s) => await s.HttpContext.RequestServices.GetRequiredService<CustomCieEvents>().TokenCreating(s);
                 })
+                .AddServiceProvidersFactory<ServiceProvidersFactory>()
                 .AddCookie();
             services.AddScoped<CustomCieEvents>();
         }
@@ -64,6 +65,8 @@ namespace CIE.AspNetCore.WebApp
             app.UseRouting();
             app.UseAuthentication();
             app.UseAuthorization();
+
+            app.AddCieSPMetadataEndpoints();
 
             app.UseEndpoints(endpoints => {
                 endpoints.MapControllerRoute(

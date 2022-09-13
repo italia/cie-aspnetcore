@@ -20,7 +20,7 @@ namespace CIE.AspNetCore.Authentication.Models
             // In AAD it sends the cleanup message to a random Reply Url and there's no deterministic way to configure it.
             //  If you manage to get it configured, then you can set RemoteSignOutPath accordingly.
             RemoteSignOutPath = "/signout-cie";
-            ServiceProvidersMetadataEndpointsBasePath = "/metadata-spid";
+            ServiceProvidersMetadataEndpointsBasePath = "/metadata-cie";
             Events = new CieEvents();
         }
 

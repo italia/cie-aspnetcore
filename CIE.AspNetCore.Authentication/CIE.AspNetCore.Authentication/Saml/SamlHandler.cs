@@ -20,11 +20,10 @@ namespace CIE.AspNetCore.Authentication.Saml
             { typeof(ResponseType), new XmlSerializer(typeof(ResponseType)) },
             { typeof(LogoutRequestType), new XmlSerializer(typeof(LogoutRequestType)) },
             { typeof(LogoutResponseType), new XmlSerializer(typeof(LogoutResponseType)) },
+            { typeof(SP.EntityDescriptorType), new XmlSerializer(typeof(SP.EntityDescriptorType)) },
         };
         private static readonly List<string> listAuthRefValid = new List<string>
         {
-            SamlConst.SpidL + "1",
-            SamlConst.SpidL + "2",
             SamlConst.SpidL + "3"
         };
 
