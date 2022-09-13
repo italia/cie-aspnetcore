@@ -213,6 +213,8 @@ namespace CIE.AspNetCore.WebApp
                             ContactType = Authentication.Saml.SP.ContactTypeType.administrative,
                             EmailAddress = new string[] { "esempio_sp_privato@spp.it" },
                             TelephoneNumber = new string[] { "+39061234567" },
+                            VATNumber = "IT01234567890",
+                            FiscalCode = "9876543210",
                             NACE2Codes = new string[] { "CODICE_ATECO" },
                             Municipality = "CODICE_ISTAT_SEDE"
                         },
