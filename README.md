@@ -167,7 +167,7 @@ La libreria è dotata della possibilità di generare dinamicamente dei metadata 
 E' possibile aggiungere nuovi ServiceProvider sia in maniera procedurale, in fase di `Startup`, come segue:
 
 ```csharp
-.AddSpid(o =>
+.AddCie(o =>
 {
     o.LoadFromConfiguration(Configuration);
     o.ServiceProviders.AddRange(GetServiceProviders(o));
@@ -175,7 +175,7 @@ E' possibile aggiungere nuovi ServiceProvider sia in maniera procedurale, in fas
 
 ......
 
-private List<Authentication.Models.ServiceProviders.ServiceProvider> GetServiceProviders(SpidOptions o)
+private List<Authentication.Models.ServiceProviders.ServiceProvider> GetServiceProviders(CieOptions o)
 {
     return new List<Authentication.Models.ServiceProviders.ServiceProvider>(){
 	    new ServiceProviderStandard()
@@ -247,7 +247,7 @@ private List<Authentication.Models.ServiceProviders.ServiceProvider> GetServiceP
 sia utilizzando una classe che implementa l'interfaccia `IServiceProvidersFactory` e configurandola come segue:
 
 ```csharp
-.AddSpid(o =>
+.AddCie(o =>
 {
     o.LoadFromConfiguration(Configuration);
 })
@@ -266,12 +266,12 @@ public class ServiceProvidersFactory : IServiceProvidersFactory
 
 Infine, per poter esporre gli endpoint dei metadata relativi ai Service Provider registrati, sarà necessario aggiungere la seguente riga:
 ```csharp
-app.AddSpidSPMetadataEndpoints();
+app.AddCieSPMetadataEndpoints();
 ```
 
-Tutti i metadata generati vengono automaticamente esposti su endpoint diversi, che hanno come BasePath `/metadata-cie` (ad esempio, un metadata definito con NomeFile = `metadata.xml` verrà esposto sull'endpoint `/metadata-cie/metadata.xml`): il BasePath può essere cambiato, sovrascrivendo la proprietà `ServiceProvidersMetadataEndpointsBasePath` sulle SpidOptions nello `Startup.cs`.
+Tutti i metadata generati vengono automaticamente esposti su endpoint diversi, che hanno come BasePath `/metadata-cie` (ad esempio, un metadata definito con NomeFile = `metadata.xml` verrà esposto sull'endpoint `/metadata-cie/metadata.xml`): il BasePath può essere cambiato, sovrascrivendo la proprietà `ServiceProvidersMetadataEndpointsBasePath` sulle `CieOptions` nello `Startup.cs`.
 
-All'interno dell'esempio `CIE.AspNetCore.WebApp` è presente un ServiceProvider di esempio configurato tramite `IServiceProvidersFactory`.
+All'interno dell'esempio `CIE.AspNetCore.WebApp` è presente un ServiceProvider di esempio per ogni tipologia di profilo, sia configurato in maniera procedurale, sia tramite `IServiceProvidersFactory`.
 
 # Error Handling
 La libreria può, in qualunque fase (sia in fase di creazione della Request sia in fase di gestione della Response), sollevare eccezioni.
