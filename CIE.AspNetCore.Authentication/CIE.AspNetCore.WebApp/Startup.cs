@@ -148,7 +148,8 @@ namespace CIE.AspNetCore.WebApp
                             VATNumber = "IT01234567890",
                             FiscalCode = "9876543210",
                             NACE2Codes = new string[] { "CODICE_ATECO" },
-                            Municipality = "CODICE_ISTAT_SEDE"
+                            Municipality = "CODICE_ISTAT_SEDE",
+                            IPACode = "ipzsspa"
                         }
                     }
                 },
