@@ -145,8 +145,6 @@ namespace CIE.AspNetCore.WebApp
                             Company = "Organizzazione fittizia per il collaudo",
                             EmailAddress = new string[] { "info.cie@partnertecnologicoidfederata.com" },
                             TelephoneNumber = new string[] { "+390999135792" },
-                            FiscalCode = "9876543210",
-                            NACE2Codes = new string[] { "CODICE_ATECO" },
                             Municipality = "CODICE_ISTAT_SEDE",
                             IPACode = "ipzsspa"
                         }
