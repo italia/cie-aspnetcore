@@ -1,21 +1,16 @@
+using CIE.AspNetCore.Authentication.Events;
+using CIE.AspNetCore.Authentication.Extensions;
+using CIE.AspNetCore.Authentication.Models;
+using CIE.AspNetCore.Authentication.Models.ServiceProviders;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using CIE.AspNetCore.Authentication;
-using CIE.AspNetCore.Authentication.Events;
-using CIE.AspNetCore.Authentication.Helpers;
-using CIE.AspNetCore.Authentication.Models;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
-using CIE.AspNetCore.Authentication.Extensions;
-using CIE.AspNetCore.Authentication.Models.ServiceProviders;
 
 namespace CIE.AspNetCore.WebApp
 {
@@ -145,7 +140,7 @@ namespace CIE.AspNetCore.WebApp
                     OrganizationDisplayName = "Oganizzazione fittizia per il collaudo",
                     OrganizationURL = "https://www.asfweb.it/",
                     ContactPersons = new System.Collections.Generic.List<IContactPerson>() {
-                        new PrivateContactPerson() {
+                        new PublicContactPerson() {
                             ContactType = Authentication.Saml.SP.ContactTypeType.administrative,
                             Company = "Organizzazione fittizia per il collaudo",
                             EmailAddress = new string[] { "info.cie@partnertecnologicoidfederata.com" },
