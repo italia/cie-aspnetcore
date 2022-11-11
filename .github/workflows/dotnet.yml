@@ -44,6 +44,6 @@ jobs:
       working-directory: CIE.AspNetCore.Authentication/CIE.AspNetCore.WebApp
       run: dotnet bin/Debug/net6.0/CIE.AspNetCore.WebApp.dll &
     - name: Test Metadata spid-sp-public with spid-sp-test
-      run: spid_sp_test --metadata-url https://localhost:5001/metadata-cie/metadata1xml --extra --debug ERROR --profile cie-sp-public
+      run: spid_sp_test --metadata-url https://localhost:5001/metadata-cie/metadata1.xml --extra --debug ERROR --profile cie-sp-public
     - name: Test Metadata spid-sp-private with spid-sp-test
       run: spid_sp_test --metadata-url https://localhost:5001/metadata-cie/metadata3.xml --extra --debug ERROR --profile cie-sp-private 
