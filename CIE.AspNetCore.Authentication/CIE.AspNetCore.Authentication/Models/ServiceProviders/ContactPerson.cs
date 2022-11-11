@@ -1,7 +1,5 @@
-using CIE.AspNetCore.Authentication.Helpers;
 using CIE.AspNetCore.Authentication.Saml.SP;
 using System.Collections.Generic;
-using System.Xml;
 
 namespace CIE.AspNetCore.Authentication.Models.ServiceProviders
 {
@@ -61,7 +59,7 @@ namespace CIE.AspNetCore.Authentication.Models.ServiceProviders
                 elements.Add(ItemsChoiceType7.FiscalCode);
                 values.Add(this.FiscalCode);
             }
-            if (NACE2Codes.Length > 0)
+            if (NACE2Codes is not null && NACE2Codes.Length > 0)
                 foreach (var code in NACE2Codes)
                 {
                     elements.Add(ItemsChoiceType7.NACE2Code);
