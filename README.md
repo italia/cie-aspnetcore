@@ -161,8 +161,120 @@ public class CustomCieEvents : CieEvents
 }
 ```
 
+# Generazione Metadata Service Provider
+La libreria è dotata della possibilità di generare dinamicamente dei metadata per Service Provider conformi ai profili privati e pubblici indicati nel **Manuale Tecnico** CIE.
+
+E' possibile aggiungere nuovi ServiceProvider sia in maniera procedurale, in fase di `Startup`, come segue:
+
+```csharp
+.AddCie(o =>
+{
+    o.LoadFromConfiguration(Configuration);
+    o.ServiceProviders.AddRange(GetServiceProviders(o));
+})
+
+......
+
+private List<Authentication.Models.ServiceProviders.ServiceProvider> GetServiceProviders(CieOptions o)
+{
+    return new List<Authentication.Models.ServiceProviders.ServiceProvider>(){
+	    new ServiceProviderStandard()
+                {
+                    FileName = "metadata.xml",
+                    Certificate = _options.Certificate,
+                    Id = Guid.NewGuid(),
+                    EntityId = _options.EntityId,
+                    SingleLogoutServiceLocations = new List<SingleLogoutService>() {
+                        new SingleLogoutService() {
+                                Location = "https://localhost:5001/signout-cie",
+                                ProtocolBinding = ProtocolBinding.POST
+                        }
+                    },
+                    AssertionConsumerServices = new System.Collections.Generic.List<AssertionConsumerService>() {
+                        new AssertionConsumerService(){
+                            Index = 0,
+                            IsDefault = true,
+                            Location = "https://localhost:5001/signin-cie",
+                            ProtocolBinding = ProtocolBinding.POST
+                        },
+                        new AssertionConsumerService() {
+                            Index = 1,
+                            IsDefault = false,
+                            Location = "https://localhost:5001/signin-cie",
+                            ProtocolBinding = ProtocolBinding.Redirect
+                        }
+                    },
+                    AttributeConsumingServices = new System.Collections.Generic.List<AttributeConsumingService>() {
+                        new AttributeConsumingService() {
+                            Index = 0,
+                            ServiceDescription = "Service 1 Description",
+                            ClaimTypes = new CieClaimTypes[] {
+                                CieClaimTypes.Name,
+                                CieClaimTypes.FamilyName,
+                                CieClaimTypes.FiscalNumber,
+                                CieClaimTypes.DateOfBirth
+                            }
+                        },
+                        new AttributeConsumingService() {
+                            Index = 1,
+                            ServiceDescription = "Service 2 Description",
+                            ClaimTypes = new CieClaimTypes[] {
+                                CieClaimTypes.Name,
+                                CieClaimTypes.FamilyName,
+                                CieClaimTypes.FiscalNumber,
+                                CieClaimTypes.DateOfBirth
+                            }
+                        }
+                    },
+                    OrganizationName = "Organizzazione fittizia per il collaudo",
+                    OrganizationDisplayName = "Oganizzazione fittizia per il collaudo", 
+                    OrganizationURL = "https://www.asfweb.it/",
+                    ContactPersons = new System.Collections.Generic.List<IContactPerson>() {
+                        new PrivateContactPerson() {
+                            ContactType = Authentication.Saml.SP.ContactTypeType.administrative,
+                            Company = "Partner Tecnologico per Soluzioni di Identità Federata s.r.l.",
+                            EmailAddress = new string[] { "info.cie@partnertecnologicoidfederata.com" },
+                            TelephoneNumber = new string[] { "+390999135792" },
+                            VATNumber = "IT01234567890",
+                            FiscalCode = "9876543210",
+                            NACE2Codes = new string[] { "CODICE_ATECO" },
+                            Municipality = "CODICE_ISTAT_SEDE"
+                        }
+                    }
+                },
+.......
+```
+sia utilizzando una classe che implementa l'interfaccia `IServiceProvidersFactory` e configurandola come segue:
+
+```csharp
+.AddCie(o =>
+{
+    o.LoadFromConfiguration(Configuration);
+})
+.AddServiceProvidersFactory<ServiceProvidersFactory>();
+
+........
+
+public class ServiceProvidersFactory : IServiceProvidersFactory
+{
+	public Task<List<ServiceProvider>> GetServiceProviders()
+	    => Task.FromResult(new List<ServiceProvider>() {
+		new Authentication.Models.ServiceProviders.ServiceProviderStandard()
+		{
+..............
+```
+
+Infine, per poter esporre gli endpoint dei metadata relativi ai Service Provider registrati, sarà necessario aggiungere la seguente riga:
+```csharp
+app.AddCieSPMetadataEndpoints();
+```
+
+Tutti i metadata generati vengono automaticamente esposti su endpoint diversi, che hanno come BasePath `/metadata-cie` (ad esempio, un metadata definito con NomeFile = `metadata.xml` verrà esposto sull'endpoint `/metadata-cie/metadata.xml`): il BasePath può essere cambiato, sovrascrivendo la proprietà `ServiceProvidersMetadataEndpointsBasePath` sulle `CieOptions` nello `Startup.cs`.
+
+All'interno dell'esempio `CIE.AspNetCore.WebApp` è presente un ServiceProvider di esempio per ogni tipologia di profilo, sia configurato in maniera procedurale, sia tramite `IServiceProvidersFactory`.
+
 # Error Handling
-La libreria può, in qualunque fase (sia in fase di creazione della Request sia in fase di gestione della Response), sollevare eccezioni. 
+La libreria può, in qualunque fase (sia in fase di creazione della Request sia in fase di gestione della Response), sollevare eccezioni.
 Un tipico scenario è quello in cui vengono ricevuti i codici di errore previsti dal protocollo (n.19, n.20, ecc....), in tal caso la libreria solleva un'eccezione contenente il corrispondente messaggio d'errore localizzato, richiesto dalle specifiche CIE3.0, che è possibile gestire (ad esempio per la visualizzazione) utilizzando il normale flusso previsto per AspNetCore. L'esempio seguente fa uso del middleware di ExceptionHandling di AspNetCore.
 
 ```csharp

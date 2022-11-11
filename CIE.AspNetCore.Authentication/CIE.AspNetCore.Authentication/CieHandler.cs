@@ -1,4 +1,5 @@
 ﻿using CIE.AspNetCore.Authentication.Events;
+using CIE.AspNetCore.Authentication.Extensions;
 using CIE.AspNetCore.Authentication.Helpers;
 using CIE.AspNetCore.Authentication.Models;
 using CIE.AspNetCore.Authentication.Resources;

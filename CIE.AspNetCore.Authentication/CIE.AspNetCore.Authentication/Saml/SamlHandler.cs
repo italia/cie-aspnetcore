@@ -20,11 +20,10 @@ namespace CIE.AspNetCore.Authentication.Saml
             { typeof(ResponseType), new XmlSerializer(typeof(ResponseType)) },
             { typeof(LogoutRequestType), new XmlSerializer(typeof(LogoutRequestType)) },
             { typeof(LogoutResponseType), new XmlSerializer(typeof(LogoutResponseType)) },
+            { typeof(SP.EntityDescriptorType), new XmlSerializer(typeof(SP.EntityDescriptorType)) },
         };
         private static readonly List<string> listAuthRefValid = new List<string>
         {
-            SamlConst.SpidL + "1",
-            SamlConst.SpidL + "2",
             SamlConst.SpidL + "3"
         };
 
@@ -466,6 +465,27 @@ namespace CIE.AspNetCore.Authentication.Saml
             BusinessValidation.ValidationCondition(() => !XmlHelpers.VerifySignature(xmlDoc), ErrorLocalization.InvalidSignature);
 
             return (response.InResponseTo == request.ID);
+        }
+
+        public static string SerializeMetadata<T>(T message) where T : class
+        {
+            var serializer = serializers[typeof(T)];
+            var ns = new XmlSerializerNamespaces();
+            ns.Add(SamlConst.md, SamlConst.Saml2pMetadata);
+            ns.Add(SamlConst.ds, SamlConst.xmldsigNamespace);
+            ns.Add(SamlConst.cie, SamlConst.cieNamespace);
+
+            var settings = new XmlWriterSettings
+            {
+                OmitXmlDeclaration = true,
+                Indent = false,
+                Encoding = Encoding.UTF8
+            };
+
+            using var stringWriter = new StringWriter();
+            using var responseWriter = XmlTextWriter.Create(stringWriter, settings);
+            serializer.Serialize(responseWriter, message, ns);
+            return stringWriter.ToString();
         }
 
         /// <summary>

@@ -81,5 +81,8 @@ namespace CIE.AspNetCore.Authentication.Helpers
             var hash = shaHash.ComputeHash(Encoding.UTF8.GetBytes(payload));
             return Convert.ToBase64String(rsa.SignHash(hash, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1), Base64FormattingOptions.None);
         }
+
+        public static byte[] ExportPublicKey(this X509Certificate2 cert) 
+            => cert.Export(X509ContentType.Cert);   
     }
 }
