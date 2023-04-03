@@ -1,10 +1,16 @@
 name: .NET
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
     branches: [ main ]
+    types: [ opened, synchronize, closed ]
+  push:
+    paths-ignore:
+      - README.md
+      - CHANGELOG.md  # Should never be edited anyway
+      - .gitignore
+      - .github/**
+  workflow_dispatch:
 
 jobs:
   build:
@@ -16,7 +22,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 6.x
+        dotnet-version: 7.x
     - name: Restore dependencies
       run: dotnet restore
       working-directory: CIE.AspNetCore.Authentication
@@ -32,17 +38,17 @@ jobs:
     - name: Build WebApp
       run: dotnet build --no-restore
       working-directory: CIE.AspNetCore.Authentication/CIE.AspNetCore.WebApp
+    - name: Run CIE.AspNetCore.WebApp
+      working-directory: CIE.AspNetCore.Authentication/CIE.AspNetCore.WebApp
+      run: dotnet run &
     - name: Update apt repo
       run: sudo apt update
     - name: Install dependencies
       run: sudo apt install -y libxml2-dev libxmlsec1-dev libxmlsec1-openssl xmlsec1 python3-pip
     - name: Install spid-compliant-certificates cryptography correct version
-      run: sudo pip install -Iv cryptography==35.0.0
+      run: sudo pip install -Iv cryptography==38.0.4
     - name: Install spid-sp-test
       run: sudo pip install spid-sp-test --upgrade --no-cache
-    - name: Run CIE.AspNetCore.WebApp
-      working-directory: CIE.AspNetCore.Authentication/CIE.AspNetCore.WebApp
-      run: dotnet bin/Debug/net6.0/CIE.AspNetCore.WebApp.dll &
     - name: Test Metadata spid-sp-public with spid-sp-test
       run: spid_sp_test --metadata-url https://localhost:5001/metadata-cie/metadata1.xml --extra --debug ERROR --profile cie-sp-public
     - name: Test Metadata spid-sp-private with spid-sp-test
