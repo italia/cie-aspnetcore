@@ -49,6 +49,8 @@ jobs:
       run: sudo pip install -Iv cryptography==38.0.4
     - name: Install spid-sp-test
       run: sudo pip install spid-sp-test --upgrade --no-cache
+    - name: Test Requests/Responses with spid-sp-test
+      run: spid_sp_test --metadata-url https://localhost:5001/metadata-cie/metadata1.xml --authn-url https://localhost:5001/home/login --extra --debug ERROR --profile cie-sp-public -tr
     - name: Test Metadata spid-sp-public with spid-sp-test
       run: spid_sp_test --metadata-url https://localhost:5001/metadata-cie/metadata1.xml --extra --debug ERROR --profile cie-sp-public
     - name: Test Metadata spid-sp-private with spid-sp-test
