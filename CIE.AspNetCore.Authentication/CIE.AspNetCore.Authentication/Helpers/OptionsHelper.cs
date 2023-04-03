@@ -1,5 +1,6 @@
 ﻿using CIE.AspNetCore.Authentication.Models;
 using Microsoft.Extensions.Configuration;
+using System;
 using System.Security.Cryptography.X509Certificates;
 
 namespace CIE.AspNetCore.Authentication.Helpers
@@ -16,7 +17,6 @@ namespace CIE.AspNetCore.Authentication.Helpers
             {
                 options.IdentityProvider = new IdentityProvider()
                 {
-                    Method = identityProviderSection.GetValue<RequestMethod>("Method"),
                     Name = identityProviderSection.GetValue<string>("Name"),
                     OrganizationDisplayName = identityProviderSection.GetValue<string>("OrganizationDisplayName"),
                     OrganizationLogoUrl = identityProviderSection.GetValue<string>("OrganizationLogoUrl"),
@@ -24,10 +24,11 @@ namespace CIE.AspNetCore.Authentication.Helpers
                     OrganizationUrl = identityProviderSection.GetValue<string>("OrganizationUrl"),
                     OrganizationUrlMetadata = identityProviderSection.GetValue<string>("OrganizationUrlMetadata"),
                     ProviderType = identityProviderSection.GetValue<ProviderType>("Type"),
-                    SingleSignOnServiceUrl = identityProviderSection.GetValue<string>("SingleSignOnServiceUrl"),
-                    SingleSignOutServiceUrl = identityProviderSection.GetValue<string>("SingleSignOutServiceUrl"),
+                    SingleSignOnServiceUrlPost = identityProviderSection.GetValue<string>("SingleSignOnServiceUrlPost"),
+                    SingleSignOutServiceUrlPost = identityProviderSection.GetValue<string>("SingleSignOutServiceUrlPost"),
+                    SingleSignOnServiceUrlRedirect = identityProviderSection.GetValue<string>("SingleSignOnServiceUrlRedirect"),
+                    SingleSignOutServiceUrlRedirect = identityProviderSection.GetValue<string>("SingleSignOutServiceUrlRedirect"),
                     SubjectNameIdRemoveText = identityProviderSection.GetValue<string>("SubjectNameIdRemoveText"),
-                    SecurityLevel = identityProviderSection.GetValue<int?>("SecurityLevel") ?? 3,
                 };
             }
 
@@ -42,6 +43,8 @@ namespace CIE.AspNetCore.Authentication.Helpers
             options.SkipUnrecognizedRequests = section.GetValue<bool?>("SkipUnrecognizedRequests") ?? true;
             options.CacheIdpMetadata = section.GetValue<bool?>("CacheIdpMetadata") ?? false;
             options.SecurityLevel = section.GetValue<int?>("SecurityLevel") ?? 2;
+            var requestMethodParsed = Enum.TryParse<RequestMethod>(section.GetValue<string?>("RequestMethod"), out var requestMethod);
+            options.RequestMethod = requestMethodParsed ? requestMethod : RequestMethod.Post;
             var certificateSection = section.GetSection("Certificate");
             if (certificateSection != null)
             {

@@ -24,6 +24,8 @@ namespace CIE.AspNetCore.Authentication.Saml
         };
         private static readonly List<string> listAuthRefValid = new List<string>
         {
+            SamlConst.SpidL + "1",
+            SamlConst.SpidL + "2",
             SamlConst.SpidL + "3"
         };
 
@@ -44,13 +46,15 @@ namespace CIE.AspNetCore.Authentication.Saml
             ushort? assertionConsumerServiceIndex,
             ushort? attributeConsumingServiceIndex,
             X509Certificate2 certificate,
+            int securityLevel,
+            RequestMethod requestMethod,
             IdentityProvider identityProvider)
         {
 
             BusinessValidation.Argument(requestId, string.Format(ErrorLocalization.ParameterCantNullOrEmpty, nameof(requestId)));
             BusinessValidation.Argument(certificate, string.Format(ErrorLocalization.ParameterCantNull, nameof(certificate)));
             BusinessValidation.Argument(identityProvider, string.Format(ErrorLocalization.ParameterCantNull, nameof(identityProvider)));
-            BusinessValidation.ValidationCondition(() => string.IsNullOrWhiteSpace(identityProvider.SingleSignOnServiceUrl), ErrorLocalization.SingleSignOnUrlRequired);
+            BusinessValidation.ValidationCondition(() => string.IsNullOrWhiteSpace(identityProvider.GetSingleSignOnServiceUrl(requestMethod)), ErrorLocalization.SingleSignOnUrlRequired);
 
             if (string.IsNullOrWhiteSpace(identityProvider.DateTimeFormat))
             {
@@ -72,9 +76,9 @@ namespace CIE.AspNetCore.Authentication.Saml
                 ID = "_" + requestId,
                 Version = SamlConst.Version,
                 IssueInstant = now.AddMinutes(nowDelta).ToString(dateTimeFormat),
-                Destination = identityProvider.SingleSignOnServiceUrl,
-                ForceAuthn = identityProvider.SecurityLevel > 1,
-                ForceAuthnSpecified = identityProvider.SecurityLevel > 1,
+                Destination = identityProvider.GetSingleSignOnServiceUrl(requestMethod),
+                ForceAuthn = securityLevel > 1,
+                ForceAuthnSpecified = securityLevel > 1,
                 Issuer = new NameIDType
                 {
                     Value = entityId.Trim(),
@@ -104,7 +108,7 @@ namespace CIE.AspNetCore.Authentication.Saml
                     ComparisonSpecified = true,
                     Items = new string[1]
                     {
-                        SamlConst.SpidL + identityProvider.SecurityLevel
+                        SamlConst.SpidL + securityLevel
                     },
                     ItemsElementName = new ItemsChoiceType7[1]
                     {
@@ -357,6 +361,11 @@ namespace CIE.AspNetCore.Authentication.Saml
             BusinessValidation.ValidationCondition(() => !response.GetAssertion().GetAuthnStatement().AuthnContext.GetAuthnContextClassRef().Equals(request.RequestedAuthnContext.Items[0]), string.Format(ErrorLocalization.ParameterNotValid, ErrorFields.AuthnContextClassRef));
 
             BusinessValidation.ValidationCondition(() => !listAuthRefValid.Contains(response.GetAssertion().GetAuthnStatement().AuthnContext.GetAuthnContextClassRef()), string.Format(ErrorLocalization.ParameterNotValid, ErrorFields.AuthnContextClassRef));
+
+            var responseAuthnContextClassRefLevel = int.Parse(response.GetAssertion().GetAuthnStatement().AuthnContext.GetAuthnContextClassRef().Last().ToString());
+            var requestAuthnContextClassRefLevel = int.Parse(request.RequestedAuthnContext.Items[0].Last().ToString());
+
+            BusinessValidation.ValidationCondition(() => responseAuthnContextClassRefLevel < requestAuthnContextClassRefLevel, string.Format(ErrorLocalization.ParameterNotValid, ErrorFields.AuthnContextClassRef));
         }
 
         /// <summary>
@@ -371,7 +380,8 @@ namespace CIE.AspNetCore.Authentication.Saml
         /// <param name="authnStatementSessionIndex"></param>
         /// <returns></returns>
         public static LogoutRequestType GetLogoutRequest(string requestId, string consumerServiceURL, X509Certificate2 certificate,
-           IdentityProvider identityProvider, string subjectNameId, string authnStatementSessionIndex)
+           IdentityProvider identityProvider, string subjectNameId, string authnStatementSessionIndex,
+            RequestMethod requestMethod)
         {
 
             BusinessValidation.Argument(requestId, string.Format(ErrorLocalization.ParameterCantNullOrEmpty, nameof(requestId)));
@@ -390,14 +400,14 @@ namespace CIE.AspNetCore.Authentication.Saml
                 identityProvider.NowDelta = SamlDefaultSettings.NowDelta;
             }
 
-            if (string.IsNullOrWhiteSpace(identityProvider.SingleSignOutServiceUrl))
+            if (string.IsNullOrWhiteSpace(identityProvider.GetSingleSignOutServiceUrl(requestMethod)))
             {
                 throw new ArgumentNullException("The LogoutServiceUrl of the identity provider is null or empty.");
             }
 
             string dateTimeFormat = identityProvider.DateTimeFormat;
             string subjectNameIdRemoveText = identityProvider.SubjectNameIdRemoveText;
-            string singleLogoutServiceUrl = identityProvider.SingleSignOutServiceUrl;
+            string singleLogoutServiceUrl = identityProvider.GetSingleSignOutServiceUrl(requestMethod);
 
             DateTime now = DateTime.UtcNow;
 

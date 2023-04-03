@@ -68,11 +68,11 @@ In particolare è possibile aggiungere alla configurazione una sezione 'Cie' che
       "OrganizationUrlMetadata": "https://preproduzione.idserver.servizicie.interno.gov.it/idp/shibboleth?Metadata",
       "OrganizationUrl": "https://www.interno.gov.it/it",
       "OrganizationLogoUrl": "",
-      "SingleSignOnServiceUrl": "https://preproduzione.idserver.servizicie.interno.gov.it/idp/profile/SAML2/POST/SSO",
-      "SingleSignOutServiceUrl": "https://preproduzione.idserver.servizicie.interno.gov.it/idp/profile/SAML2/POST/SLO",
-      "Method": "Post",
-      "Type": "StagingProvider",
-      "SecurityLevel": 3
+      "SingleSignOnServiceUrlPost": "https://preproduzione.idserver.servizicie.interno.gov.it/idp/profile/SAML2/POST/SSO",
+      "SingleSignOutServiceUrlPost": "https://preproduzione.idserver.servizicie.interno.gov.it/idp/profile/SAML2/POST/SLO",
+      "SingleSignOnServiceUrlRedirect": "https://preproduzione.idserver.servizicie.interno.gov.it/idp/profile/SAML2/Redirect/SSO",
+      "SingleSignOutServiceUrlRedirect": "https://preproduzione.idserver.servizicie.interno.gov.it/idp/profile/SAML2/Redirect/SLO",
+      "Type": "StagingProvider"
     },
     "Certificate": {
       "Source": "Store/Raw/File/None",
@@ -95,7 +95,9 @@ In particolare è possibile aggiungere alla configurazione una sezione 'Cie' che
     "EntityId": "https://entityID",
     "AssertionConsumerServiceIndex": 0,
     "AttributeConsumingServiceIndex": 0
-  }
+    "Type": "StagingProvider",
+    "SecurityLevel": 3
+}
 ```
 La configurazione del certificato del SP avviene specificando nel campo `Source` uno tra i valori `Store/File/Raw/None` (nel caso di `None` non verrà caricato un certificato durante lo startup, ma sarà necessario fornirne uno a runtime, tramite l'uso dei `CustomCieEvents`, che verranno presentati più nel dettaglio nella sezione successiva) e compilando opportunamente la sezione corrispondente al valore specificato. Le sezioni non usate (quelle cioè corrispondenti agli altri valori) potranno essere tranquillamente eliminate dal file di configurazione, dal momento che non verranno lette.
 
@@ -142,6 +144,8 @@ public class CustomCieEvents : CieEvents
         context.TokenOptions.AssertionConsumerServiceIndex = customConfig.AssertionConsumerServiceIndex;
         context.TokenOptions.AttributeConsumingServiceIndex = customConfig.AttributeConsumingServiceIndex;
         context.TokenOptions.Certificate = customConfig.Certificate;
+        context.TokenOptions.SecurityLevel = customConfig.SecurityLevel;
+        context.TokenOptions.RequestMethod = customConfig.RequestMethod;
 
         return base.TokenCreating(context);
     }
@@ -273,6 +277,45 @@ Tutti i metadata generati vengono automaticamente esposti su endpoint diversi, c
 
 All'interno dell'esempio `CIE.AspNetCore.WebApp` è presente un ServiceProvider di esempio per ogni tipologia di profilo, sia configurato in maniera procedurale, sia tramite `IServiceProvidersFactory`.
 
+# Log Handling
+Dalla versione 2.0.0 è possibile specificare un custom LogHandler al fine di implementare la strategia di salvataggio dei Log di Request/Response che si preferisce.
+E' sufficiente implementare la seguente classe:
+
+```csharp
+public class LogHandler : ILogHandler
+{
+    public Task LogPostRequest(PostRequest request)
+    {
+        // Persist your request
+    }
+
+    public Task LogPostResponse(PostResponse response)
+    {
+        // Persist your response
+    }
+
+    public Task LogRedirectRequest(RedirectRequest request)
+    {
+        // Persist your request
+    }
+
+    public Task LogRedirectResponse(RedirectResponse response)
+    {
+        // Persist your response
+    }
+}
+```
+
+ed effettuare l'opportuna registrazione nello Startup come segue:
+
+```csharp
+services.AddAuthentication(/* ... */)
+                .AddCie(/* ... */)
+                .AddLogHandler<LogHandler>()
+                /* add other Cie-related services.... */;
+```
+
+
 # Error Handling
 La libreria può, in qualunque fase (sia in fase di creazione della Request sia in fase di gestione della Response), sollevare eccezioni.
 Un tipico scenario è quello in cui vengono ricevuti i codici di errore previsti dal protocollo (n.19, n.20, ecc....), in tal caso la libreria solleva un'eccezione contenente il corrispondente messaggio d'errore localizzato, richiesto dalle specifiche CIE3.0, che è possibile gestire (ad esempio per la visualizzazione) utilizzando il normale flusso previsto per AspNetCore. L'esempio seguente fa uso del middleware di ExceptionHandling di AspNetCore.
@@ -331,6 +374,21 @@ private IEnumerable<TSource> FromHierarchy<TSource>(TSource source,
 
 # Compliance
 La libreria è stata oggetto di collaudo da parte dell'Istituto Poligrafico e Zecca dello Stato, ha superato tutti i test di [spid-saml-check](https://github.com/italia/spid-saml-check) ed è compliant con le direttive specificate nel manuale operativo di CIE.
+
+# Upgrade dalla versione 1.x alla 2.x
+A partire dalla versione 2.0.0 è stata migliorata la gestione dei Log e dei CieEvents, e sono state apportate alcune modifiche alla sezione di configurazione.
+
+Di seguito le modifiche agli appsettings:
+- Sezione "Provider" 
+  - Aggiunte le property "EntityId", "SingleSignOnServiceUrlPost", "SingleSignOutServiceUrlPost", "SingleSignOnServiceUrlRedirect", "SingleSignOutServiceUrlRedirect"
+  - Eliminate le property "SingleSignOnServiceUrl", "SingleSignOutServiceUrl", "Method", "SecurityLevel"
+- Sezione root, aggiunte le property "SecurityLevel" (default "3"), "RequestMethod" (default "POST")
+
+Di seguito le modifiche ai CieEvents:
+- Aggiunte le property "SecurityLevel" e "RequestMethod" all'oggetto "SecurityTokenCreatingOptions", che viene iniettato nel CieEvent "OnTokenCreating". Effettuando l'override di queste nuove property è possibile specificare, per request, il SecurityLevel e il RequestMethod desiderati. In caso contrario verranno utilizzati i valori di default o quelli specificati nella root della sezione di settings riportati sopra.
+
+E' stata aggiunta la possibilità di specificare un custom LogHandler, come riportato nella sezione dedicata.
+
 
 # Authors
 * [Daniele Giallonardo](https://github.com/danielegiallonardo) (maintainer) - [Stefano Mostarda](https://github.com/sm15455)

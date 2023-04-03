@@ -31,11 +31,18 @@ namespace CIE.AspNetCore.Authentication
         EventsHandler _eventsHandler;
         RequestGenerator _requestGenerator;
         readonly IHttpClientFactory _httpClientFactory;
+        private readonly ILogHandler _logHandler;
 
-        public CieHandler(IOptionsMonitor<CieOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock, IHttpClientFactory httpClientFactory)
+        public CieHandler(IOptionsMonitor<CieOptions> options,
+            ILoggerFactory logger,
+            UrlEncoder encoder,
+            ISystemClock clock,
+            IHttpClientFactory httpClientFactory,
+            ILogHandler logHandler)
             : base(options, logger, encoder, clock)
         {
             _httpClientFactory = httpClientFactory;
+            _logHandler = logHandler;
         }
 
         protected new CieEvents Events
@@ -67,7 +74,7 @@ namespace CIE.AspNetCore.Authentication
         public override Task<bool> HandleRequestAsync()
         {
             _eventsHandler = new EventsHandler(Events);
-            _requestGenerator = new RequestGenerator(Response, Logger);
+            _requestGenerator = new RequestGenerator(Response, Logger, _logHandler);
 
             // RemoteSignOutPath and CallbackPath may be the same, fall through if the message doesn't match.
             if (Options.RemoteSignOutPath.HasValue && Options.RemoteSignOutPath == Request.Path)
@@ -103,6 +110,8 @@ namespace CIE.AspNetCore.Authentication
                 securityTokenCreatingContext.TokenOptions.AssertionConsumerServiceIndex,
                 securityTokenCreatingContext.TokenOptions.AttributeConsumingServiceIndex,
                 securityTokenCreatingContext.TokenOptions.Certificate,
+                securityTokenCreatingContext.TokenOptions.SecurityLevel,
+                securityTokenCreatingContext.TokenOptions.RequestMethod,
                 idp);
 
             GenerateCorrelationId(properties);
@@ -120,8 +129,8 @@ namespace CIE.AspNetCore.Authentication
             await _requestGenerator.HandleRequest(message,
                 message.ID,
                 securityTokenCreatingContext.TokenOptions.Certificate,
-                idp.SingleSignOnServiceUrl,
-                idp.Method);
+                idp.GetSingleSignOnServiceUrl(securityTokenCreatingContext.TokenOptions.RequestMethod),
+                securityTokenCreatingContext.TokenOptions.RequestMethod);
         }
 
         protected override async Task<HandleRequestResult> HandleRemoteAuthenticateAsync()
@@ -206,7 +215,8 @@ namespace CIE.AspNetCore.Authentication
                 securityTokenCreatingContext.TokenOptions.Certificate,
                 idp,
                 subjectNameId,
-                sessionIndex);
+                sessionIndex,
+                securityTokenCreatingContext.TokenOptions.RequestMethod);
 
             var (redirectHandled, afterRedirectMessage) = await _eventsHandler.HandleRedirectToIdentityProviderForSignOut(Context, Scheme, Options, properties, message);
             if (redirectHandled)
@@ -221,8 +231,8 @@ namespace CIE.AspNetCore.Authentication
             await _requestGenerator.HandleRequest(message,
                 message.ID,
                 securityTokenCreatingContext.TokenOptions.Certificate,
-                idp.SingleSignOutServiceUrl,
-                idp.Method);
+                idp.GetSingleSignOutServiceUrl(securityTokenCreatingContext.TokenOptions.RequestMethod),
+                securityTokenCreatingContext.TokenOptions.RequestMethod);
         }
 
         protected virtual async Task<bool> HandleRemoteSignOutAsync()
@@ -468,7 +478,9 @@ namespace CIE.AspNetCore.Authentication
                         EntityId = options.EntityId,
                         Certificate = options.Certificate,
                         AssertionConsumerServiceIndex = options.AssertionConsumerServiceIndex,
-                        AttributeConsumingServiceIndex = options.AttributeConsumingServiceIndex
+                        AttributeConsumingServiceIndex = options.AttributeConsumingServiceIndex,
+                        SecurityLevel = options.SecurityLevel,
+                        RequestMethod = options.RequestMethod
                     }
                 };
                 await _events.TokenCreating(securityTokenCreatingContext);
@@ -522,11 +534,13 @@ namespace CIE.AspNetCore.Authentication
         {
             readonly HttpResponse _response;
             readonly ILogger _logger;
+            private readonly ILogHandler _logHandler;
 
-            public RequestGenerator(HttpResponse response, ILogger logger)
+            public RequestGenerator(HttpResponse response, ILogger logger, ILogHandler logHandler)
             {
                 _response = response;
                 _logger = logger;
+                _logHandler = logHandler;
             }
 
             public async Task HandleRequest<T>(T message,
@@ -542,28 +556,36 @@ namespace CIE.AspNetCore.Authentication
 
                 if (method == RequestMethod.Post)
                 {
-                    var signedSerializedMessage = SamlHandler.ConvertToBase64(SamlHandler.SignSerializedDocument(unsignedSerializedMessage, certificate, messageId));
-                    await HandlePostRequest(signedSerializedMessage, signOnUrl, messageGuid);
+                    var signedSerializedMessage = SamlHandler.SignSerializedDocument(unsignedSerializedMessage, certificate, messageId);
+                    var base64SignedSerializedMessage = SamlHandler.ConvertToBase64(signedSerializedMessage);
+                    await HandlePostRequest(signedSerializedMessage, base64SignedSerializedMessage, signOnUrl, messageGuid);
                 }
                 else
                 {
-                    HandleRedirectRequest(unsignedSerializedMessage, certificate, signOnUrl, messageGuid);
+                    await HandleRedirectRequest(unsignedSerializedMessage, certificate, signOnUrl, messageGuid);
                 }
             }
 
-            private async Task HandlePostRequest(string signedSerializedMessage, string url, string messageGuid)
+            private async Task HandlePostRequest(string signedSerializedMessage, string base64SignedSerializedMessage, string url, string messageGuid)
             {
+                await _logHandler.LogPostRequest(new PostRequest()
+                {
+                    SignedMessage = signedSerializedMessage,
+                    SAMLRequest = base64SignedSerializedMessage,
+                    RelayState = messageGuid,
+                    Url = url
+                });
                 await _response.WriteAsync($"<html><head><title>Login</title></head><body><form id=\"cieform\" action=\"{url}\" method=\"post\">" +
-                                          $"<input type=\"hidden\" name=\"SAMLRequest\" value=\"{signedSerializedMessage}\" />" +
+                                          $"<input type=\"hidden\" name=\"SAMLRequest\" value=\"{base64SignedSerializedMessage}\" />" +
                                           $"<input type=\"hidden\" name=\"RelayState\" value=\"{messageGuid}\" />" +
                                           $"<button id=\"btnLogin\" style=\"display: none;\">Login</button>" +
                                           "<script>document.getElementById('btnLogin').click()</script>" +
                                           "</form></body></html>");
             }
 
-            private void HandleRedirectRequest(string unsignedSerializedMessage, X509Certificate2 certificate, string url, string messageGuid)
+            private async Task HandleRedirectRequest(string unsignedSerializedMessage, X509Certificate2 certificate, string url, string messageGuid)
             {
-                string redirectUri = GetRedirectUrl(url, messageGuid, unsignedSerializedMessage, certificate);
+                string redirectUri = await GetRedirectUrl(url, messageGuid, unsignedSerializedMessage, certificate);
                 if (!Uri.IsWellFormedUriString(redirectUri, UriKind.Absolute))
                 {
                     _logger.MalformedRedirectUri(redirectUri);
@@ -571,7 +593,7 @@ namespace CIE.AspNetCore.Authentication
                 _response.Redirect(redirectUri);
             }
 
-            private string GetRedirectUrl(string signOnSignOutUrl, string samlAuthnRequestId, string unsignedSerializedMessage, X509Certificate2 certificate)
+            private async Task<string> GetRedirectUrl(string signOnSignOutUrl, string samlAuthnRequestId, string unsignedSerializedMessage, X509Certificate2 certificate)
             {
                 var samlEndpoint = signOnSignOutUrl;
 
@@ -590,7 +612,20 @@ namespace CIE.AspNetCore.Authentication
 
                 dict.Add("Signature", signatureQuery);
 
-                return samlEndpoint + queryStringSeparator + BuildURLParametersString(dict).Substring(1);
+                var redirectUri = samlEndpoint + queryStringSeparator + BuildURLParametersString(dict).Substring(1);
+
+                await _logHandler.LogRedirectRequest(new RedirectRequest()
+                {
+                    SignOnSignOutEndpoint = signOnSignOutUrl,
+                    RedirectUri = redirectUri,
+                    UncompressedMessage = unsignedSerializedMessage,
+                    SAMLRequest = dict["SAMLRequest"],
+                    RelayState = dict["RelayState"],
+                    SigAlg = dict["SigAlg"],
+                    Signature = signatureQuery
+                });
+
+                return redirectUri;
             }
 
             private string DeflateString(string value)

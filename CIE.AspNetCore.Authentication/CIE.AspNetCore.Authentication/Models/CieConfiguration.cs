@@ -1,7 +1,4 @@
 ﻿using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Configuration;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 
 namespace CIE.AspNetCore.Authentication.Models
@@ -76,7 +73,7 @@ namespace CIE.AspNetCore.Authentication.Models
         /// The identity providers.
         /// </value>
         public IdentityProvider IdentityProvider { get; set; }
-       
+
         /// <summary>
         /// Gets or sets the certificate.
         /// </summary>
@@ -99,5 +96,13 @@ namespace CIE.AspNetCore.Authentication.Models
         /// The security level.
         /// </value>
         public int SecurityLevel { get; set; }
+
+        /// <summary>
+        /// Gets or sets the request method.
+        /// </summary>
+        /// <value>
+        /// The request method.
+        /// </value>
+        public RequestMethod RequestMethod { get; set; }
     }
 }

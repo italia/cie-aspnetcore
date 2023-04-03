@@ -144,6 +144,15 @@ namespace CIE.AspNetCore.Authentication.Models
         public PathString ServiceProvidersMetadataEndpointsBasePath { get; set; }
 
         /// <summary>
+        /// Gets or sets the security level.
+        /// </summary>
+        /// <value>
+        /// The security level.
+        /// </value>
+        public int SecurityLevel { get; set; }
+        public RequestMethod RequestMethod { get; set; }
+
+        /// <summary>
         /// Gets or sets the collection of the exposed SP metadata.
         /// </summary>
         /// <value>
@@ -166,6 +175,8 @@ namespace CIE.AspNetCore.Authentication.Models
             SkipUnrecognizedRequests = conf.SkipUnrecognizedRequests;
             Certificate = conf.Certificate;
             CacheIdpMetadata = conf.CacheIdpMetadata;
+            RequestMethod = conf.RequestMethod;
+            SecurityLevel = conf.SecurityLevel;
         }
     }
 }

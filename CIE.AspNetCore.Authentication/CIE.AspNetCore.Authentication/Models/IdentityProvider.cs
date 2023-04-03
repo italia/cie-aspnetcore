@@ -8,13 +8,23 @@
         public string OrganizationUrlMetadata { get; set; }
         public string OrganizationUrl { get; set; }
         public string OrganizationLogoUrl { get; set; }
-        public string SingleSignOnServiceUrl { get; set; }
-        public string SingleSignOutServiceUrl { get; set; }
-        public RequestMethod Method { get; set; } = RequestMethod.Post;
+        public string SingleSignOnServiceUrlPost { get; set; }
+        public string SingleSignOutServiceUrlPost { get; set; }
+        public string SingleSignOnServiceUrlRedirect { get; set; }
+        public string SingleSignOutServiceUrlRedirect { get; set; }
         public string DateTimeFormat { get; internal set; }
         public double? NowDelta { get; internal set; }
         public string SubjectNameIdRemoveText { get; set; } = "CIE-";
         public ProviderType ProviderType { get; set; } = ProviderType.IdentityProvider;
-        public int SecurityLevel { get; set; }
+
+        public string GetSingleSignOnServiceUrl(RequestMethod requestMethod)
+            => requestMethod == RequestMethod.Post
+                ? SingleSignOnServiceUrlPost
+                : SingleSignOnServiceUrlRedirect;
+
+        public string GetSingleSignOutServiceUrl(RequestMethod requestMethod)
+            => requestMethod == RequestMethod.Post
+                ? SingleSignOutServiceUrlPost
+                : SingleSignOutServiceUrlRedirect;
     }
 }
