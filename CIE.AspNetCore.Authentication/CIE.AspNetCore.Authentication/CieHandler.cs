@@ -6,6 +6,7 @@ using CIE.AspNetCore.Authentication.Resources;
 using CIE.AspNetCore.Authentication.Saml;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
@@ -389,6 +390,18 @@ namespace CIE.AspNetCore.Authentication
                 var form = await Request.ReadFormAsync();
 
                 var serializedResponse = Encoding.UTF8.GetString(Convert.FromBase64String(form["SAMLResponse"][0]));
+
+                await _logHandler.LogPostResponse(new PostResponse()
+                {
+                    SignedMessage = serializedResponse,
+                    SAMLResponse = form["SAMLResponse"].FirstOrDefault(),
+                    RelayState = form["RelayState"].ToString(),
+                    ContentType = Request.ContentType,
+                    Url = Request.GetEncodedUrl(),
+                    Headers = Request.Headers.ToDictionary(t => t.Key, t => t.Value),
+                    Cookies = Request.Cookies.ToDictionary(t => t.Key, t => t.Value)
+                });
+
                 return (
                     form["RelayState"].ToString(),
                     SamlHandler.GetAuthnResponse(form["SAMLResponse"][0]),
@@ -400,6 +413,17 @@ namespace CIE.AspNetCore.Authentication
                 && Request.Query.ContainsKey("RelayState"))
             {
                 var serializedResponse = DecompressString(Request.Query["SAMLResponse"].FirstOrDefault());
+
+                await _logHandler.LogRedirectResponse(new RedirectResponse()
+                {
+                    SignedMessage = serializedResponse,
+                    SAMLResponse = Request.Query["SAMLResponse"].FirstOrDefault(),
+                    RelayState = Request.Query["RelayState"].FirstOrDefault(),
+                    Url = Request.GetEncodedUrl(),
+                    Headers = Request.Headers.ToDictionary(t => t.Key, t => t.Value),
+                    Cookies = Request.Cookies.ToDictionary(t => t.Key, t => t.Value)
+                });
+
                 return (
                     Request.Query["RelayState"].FirstOrDefault(),
                     SamlHandler.GetAuthnResponse(serializedResponse),
@@ -419,9 +443,21 @@ namespace CIE.AspNetCore.Authentication
                 var form = await Request.ReadFormAsync();
 
                 var serializedResponse = Encoding.UTF8.GetString(Convert.FromBase64String(form["SAMLResponse"][0]));
+
+                await _logHandler.LogPostResponse(new PostResponse()
+                {
+                    SignedMessage = serializedResponse,
+                    SAMLResponse = form["SAMLResponse"].FirstOrDefault(),
+                    RelayState = form["RelayState"].ToString(),
+                    ContentType = Request.ContentType,
+                    Url = Request.GetEncodedUrl(),
+                    Headers = Request.Headers.ToDictionary(t => t.Key, t => t.Value),
+                    Cookies = Request.Cookies.ToDictionary(t => t.Key, t => t.Value)
+                });
+
                 return (
                     form["RelayState"].ToString(),
-                    SamlHandler.GetLogoutResponse(form["SAMLResponse"][0]),
+                    SamlHandler.GetLogoutResponse(serializedResponse),
                     serializedResponse
                 );
             }
@@ -430,6 +466,17 @@ namespace CIE.AspNetCore.Authentication
                 && Request.Query.ContainsKey("RelayState"))
             {
                 var serializedResponse = DecompressString(Request.Query["SAMLResponse"].FirstOrDefault());
+
+                await _logHandler.LogRedirectResponse(new RedirectResponse()
+                {
+                    SignedMessage = serializedResponse,
+                    SAMLResponse = Request.Query["SAMLResponse"].FirstOrDefault(),
+                    RelayState = Request.Query["RelayState"].FirstOrDefault(),
+                    Url = Request.GetEncodedUrl(),
+                    Headers = Request.Headers.ToDictionary(t => t.Key, t => t.Value),
+                    Cookies = Request.Cookies.ToDictionary(t => t.Key, t => t.Value)
+                });
+
                 return (
                     Request.Query["RelayState"].FirstOrDefault(),
                     SamlHandler.GetLogoutResponse(serializedResponse),

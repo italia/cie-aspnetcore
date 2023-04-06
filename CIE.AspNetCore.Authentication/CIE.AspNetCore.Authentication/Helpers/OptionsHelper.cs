@@ -42,7 +42,7 @@ namespace CIE.AspNetCore.Authentication.Helpers
             options.UseTokenLifetime = section.GetValue<bool?>("UseTokenLifetime") ?? false;
             options.SkipUnrecognizedRequests = section.GetValue<bool?>("SkipUnrecognizedRequests") ?? true;
             options.CacheIdpMetadata = section.GetValue<bool?>("CacheIdpMetadata") ?? false;
-            options.SecurityLevel = section.GetValue<int?>("SecurityLevel") ?? 2;
+            options.SecurityLevel = section.GetValue<int?>("SecurityLevel") ?? 3;
             var requestMethodParsed = Enum.TryParse<RequestMethod>(section.GetValue<string?>("RequestMethod"), out var requestMethod);
             options.RequestMethod = requestMethodParsed ? requestMethod : RequestMethod.Post;
             var certificateSection = section.GetSection("Certificate");
