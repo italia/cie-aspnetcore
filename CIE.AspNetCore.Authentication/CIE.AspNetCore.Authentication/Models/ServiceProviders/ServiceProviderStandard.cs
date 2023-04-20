@@ -63,7 +63,7 @@ namespace CIE.AspNetCore.Authentication.Models.ServiceProviders
                         }).ToArray(),
                         AttributeConsumingService = AttributeConsumingServices.Select(s => new Saml.SP.AttributeConsumingServiceType(){
                             index = s.Index,
-                            ServiceName = new Saml.SP.UUID[]{ new Saml.SP.UUID(){lang = "", Value = Guid.NewGuid().ToString() } },//TODO: capire se posso rigenerarlo ogni volta o se serve salvarlo in qualche modo
+                            ServiceName = new Saml.SP.UUID[]{ new Saml.SP.UUID(){lang = "", Value = "urn:uuid:" + Guid.NewGuid().ToString() } },//TODO: capire se posso rigenerarlo ogni volta o se serve salvarlo in qualche modo
                             ServiceDescription = new Saml.SP.localizedNameType[]{ new Saml.SP.localizedNameType(){lang = Language, Value = s.ServiceDescription } },
                             RequestedAttribute = s.ClaimTypes.Select(c => new Saml.SP.RequestedAttributeType(){
                                 NameFormat = SamlConst.RequestedAttributeNameFormat,
