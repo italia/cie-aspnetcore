@@ -195,12 +195,11 @@ namespace CIE.AspNetCore.Authentication
 
             string authenticationRequestId = Guid.NewGuid().ToString();
 
-            var requestProperties = new AuthenticationProperties();
-            requestProperties.Load(Request, Options.StateDataFormat);
+            properties.Load(Request, Options.StateDataFormat);
 
             // Extract the user state from properties and reset.
-            var subjectNameId = requestProperties.GetSubjectNameId();
-            var sessionIndex = requestProperties.GetSessionIndex();
+            var subjectNameId = properties.GetSubjectNameId();
+            var sessionIndex = properties.GetSessionIndex();
 
             var idp = Options.IdentityProvider;
 
@@ -238,7 +237,7 @@ namespace CIE.AspNetCore.Authentication
 
         protected virtual async Task<bool> HandleRemoteSignOutAsync()
         {
-            var (id, message, serializedResponse) = await ExtractInfoFromSignOutResponse();
+            var (message, serializedResponse) = await ExtractInfoFromSignOutResponse();
 
             AuthenticationProperties requestProperties = new AuthenticationProperties();
             requestProperties.Load(Request, Options.StateDataFormat);
@@ -433,7 +432,7 @@ namespace CIE.AspNetCore.Authentication
             return (null, null, null);
         }
 
-        private async Task<(string Id, LogoutResponseType Message, string serializedResponse)> ExtractInfoFromSignOutResponse()
+        private async Task<(LogoutResponseType Message, string serializedResponse)> ExtractInfoFromSignOutResponse()
         {
             if (HttpMethods.IsPost(Request.Method)
               && !string.IsNullOrEmpty(Request.ContentType)
@@ -455,9 +454,7 @@ namespace CIE.AspNetCore.Authentication
                     Cookies = Request.Cookies.ToDictionary(t => t.Key, t => t.Value)
                 });
 
-                return (
-                    form["RelayState"].ToString(),
-                    SamlHandler.GetLogoutResponse(serializedResponse),
+                return (SamlHandler.GetLogoutResponse(serializedResponse),
                     serializedResponse
                 );
             }
@@ -477,13 +474,11 @@ namespace CIE.AspNetCore.Authentication
                     Cookies = Request.Cookies.ToDictionary(t => t.Key, t => t.Value)
                 });
 
-                return (
-                    Request.Query["RelayState"].FirstOrDefault(),
-                    SamlHandler.GetLogoutResponse(serializedResponse),
+                return (SamlHandler.GetLogoutResponse(serializedResponse),
                     serializedResponse
                 );
             }
-            return (null, null, null);
+            return (null, null);
         }
 
         private static string DecompressString(string value)
@@ -735,6 +730,7 @@ namespace CIE.AspNetCore.Authentication
 
         public static void Load(this AuthenticationProperties properties, HttpRequest request, ISecureDataFormat<AuthenticationProperties> encryptor)
         {
+            BusinessValidation.ValidationCondition(() => !request.Cookies.ContainsKey(CieDefaults.CookieName), ErrorLocalization.CiePropertiesNotFound);
             var cookie = request.Cookies[CieDefaults.CookieName];
             BusinessValidation.ValidationNotNull(cookie, ErrorLocalization.CiePropertiesNotFound);
             AuthenticationProperties cookieProperties = encryptor.Unprotect(cookie);
@@ -743,15 +739,16 @@ namespace CIE.AspNetCore.Authentication
             properties.ExpiresUtc = cookieProperties.ExpiresUtc;
             properties.IsPersistent = cookieProperties.IsPersistent;
             properties.IssuedUtc = cookieProperties.IssuedUtc;
-            foreach (var item in cookieProperties.Items)
+            foreach (var item in cookieProperties.Items.Where(i => !properties.Items.ContainsKey(i.Key)))
             {
                 properties.Items.Add(item);
             }
-            foreach (var item in cookieProperties.Parameters)
+            foreach (var item in cookieProperties.Parameters.Where(i => !properties.Parameters.ContainsKey(i.Key)))
             {
                 properties.Parameters.Add(item);
             }
-            properties.RedirectUri = cookieProperties.RedirectUri;
+            if (string.IsNullOrWhiteSpace(properties.RedirectUri))
+                properties.RedirectUri = cookieProperties.RedirectUri;
         }
     }
 }
