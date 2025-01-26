@@ -1,12 +1,10 @@
 ﻿using CIE.AspNetCore.Authentication.Resources;
 using System;
-using System.Collections.Concurrent;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography.Xml;
 using System.Xml;
-using System.Xml.Serialization;
 
 namespace CIE.AspNetCore.Authentication.Helpers
 {
@@ -36,7 +34,7 @@ namespace CIE.AspNetCore.Authentication.Helpers
 
             try
             {
-                privateKey = certificate.PrivateKey;
+                privateKey = certificate.GetRSAPrivateKey();
             }
             catch (Exception ex)
             {
@@ -80,11 +78,9 @@ namespace CIE.AspNetCore.Authentication.Helpers
 
             try
             {
-                SignedXml signedXml = new SignedXml(signedDocument);
-
                 if (xmlMetadata is not null)
                 {
-                    bool validated = false;
+                    var validated = false;
                     var idpSSODescriptor = xmlMetadata.Items.FirstOrDefault(i => i is Saml.IdP.IDPSSODescriptorType) as Saml.IdP.IDPSSODescriptorType;
                     if (idpSSODescriptor is not null)
                     {
@@ -96,14 +92,7 @@ namespace CIE.AspNetCore.Authentication.Helpers
                                 var x509Cert = keyData.Items.FirstOrDefault(i => i is byte[]) as byte[];
                                 if (x509Cert is not null)
                                 {
-                                    var publicMetadataCert = new X509Certificate2(x509Cert);
-                                    XmlNodeList nodeList = (signedDocument.GetElementsByTagName("ds:Signature")?.Count > 1) ?
-                                                                       signedDocument.GetElementsByTagName("ds:Signature") :
-                                                                       (signedDocument.GetElementsByTagName("ns2:Signature")?.Count > 1) ?
-                                                                       signedDocument.GetElementsByTagName("ns2:Signature") :
-                                                                       signedDocument.GetElementsByTagName("Signature");
-                                    signedXml.LoadXml((XmlElement)nodeList[0]);
-                                    validated |= signedXml.CheckSignature(publicMetadataCert, true);
+                                    validated |= VerifyAllSignatures(signedDocument, new X509Certificate2(x509Cert));
                                 }
                             }
                         }
@@ -112,11 +101,7 @@ namespace CIE.AspNetCore.Authentication.Helpers
                 }
                 else
                 {
-                    XmlNodeList nodeList = (signedDocument.GetElementsByTagName("ds:Signature")?.Count > 0) ?
-                                           signedDocument.GetElementsByTagName("ds:Signature") :
-                                           signedDocument.GetElementsByTagName("Signature");
-                    signedXml.LoadXml((XmlElement)nodeList[0]);
-                    return signedXml.CheckSignature();
+                    return VerifyAllSignatures(signedDocument);
                 }
             }
             catch (Exception)
@@ -125,64 +110,26 @@ namespace CIE.AspNetCore.Authentication.Helpers
             }
         }
 
-        private static readonly ConcurrentDictionary<Type, XmlSerializer> serializers = new ConcurrentDictionary<Type, XmlSerializer>();
-        /// <summary>
-        /// Serializes to XML document.
-        /// </summary>
-        /// <param name="o">The o.</param>
-        /// <returns></returns>
-        public static XmlDocument SerializeToXmlDoc(this object o)
+        private static bool VerifyAllSignatures(XmlDocument signedDocument, X509Certificate2? publicMetadataCert = null)
         {
-            XmlDocument doc = new XmlDocument() { PreserveWhitespace = true };
+            bool internalResult = true;
 
-            using XmlWriter writer = doc.CreateNavigator().AppendChild();
-            if (!serializers.ContainsKey(o.GetType()))
+            XmlNodeList signatureNodes = signedDocument.GetElementsByTagName("Signature", SignedXml.XmlDsigNamespaceUrl);
+
+            if (signatureNodes.Count == 0)
             {
-                var serializer = new XmlSerializer(o.GetType());
-                serializers.AddOrUpdate(o.GetType(), serializer, (key, value) => serializer);
-            }
-            serializers[o.GetType()].Serialize(writer, o);
-
-            return doc;
-        }
-
-        public static XmlElement SerializeInternalExtensionToXmlElement(object o, string namespacePrefix, string xmlNamespace)
-        {
-            XmlDocument doc = SerializeExtensionToXmlElementInternal(o, namespacePrefix, xmlNamespace);
-
-            return doc.DocumentElement.FirstChild as XmlElement;
-        }
-
-        public static XmlElement SerializeExtensionToXmlElement(object o, string namespacePrefix, string xmlNamespace)
-        {
-            XmlDocument doc = SerializeExtensionToXmlElementInternal(o, namespacePrefix, xmlNamespace);
-
-            return doc.DocumentElement;
-        }
-
-        private static XmlDocument SerializeExtensionToXmlElementInternal(object o, string namespacePrefix, string xmlNamespace)
-        {
-            XmlDocument doc = new XmlDocument();
-
-            using (XmlWriter writer = doc.CreateNavigator().AppendChild())
-            {
-                var ns = new XmlSerializerNamespaces();
-                ns.Add(namespacePrefix, xmlNamespace);
-                new XmlSerializer(o.GetType()).Serialize(writer, o, ns);
+                return false;
             }
 
-            return doc;
-        }
-
-        public static XmlElement GetXmlElement(string prefix, string prefixNamespace, string tag, string value = null)
-        {
-            XmlDocument doc = new XmlDocument();
-
-            XmlElement elem = doc.CreateElement(prefix, tag, prefixNamespace);
-            if(!string.IsNullOrEmpty(value))
-                elem.InnerText = value;
-
-            return elem;
+            foreach (var signatureNode in signatureNodes)
+            {
+                SignedXml signedXml = new(signedDocument);
+                signedXml.LoadXml((XmlElement)signatureNode);
+                internalResult &= publicMetadataCert is null
+                    ? signedXml.CheckSignature()
+                    : signedXml.CheckSignature(publicMetadataCert, true);
+            }
+            return internalResult;
         }
     }
 }
