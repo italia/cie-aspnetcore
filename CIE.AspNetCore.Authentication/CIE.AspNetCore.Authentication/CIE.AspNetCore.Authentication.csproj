@@ -12,11 +12,11 @@
 		<PackageProjectUrl>https://github.com/italia/cie-aspnetcore</PackageProjectUrl>
 		<PackageIcon>cie-nuget.png</PackageIcon>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<PackageVersion>2.0.5</PackageVersion>
-		<Version>2.0.5</Version>
-		<AssemblyVersion>2.0.5</AssemblyVersion>
-		<FileVersion>2.0.5</FileVersion>
-		<InformationalVersion>2.0.5</InformationalVersion>
+		<PackageVersion>2.1.0</PackageVersion>
+		<Version>2.1.0</Version>
+		<AssemblyVersion>2.1.0</AssemblyVersion>
+		<FileVersion>2.1.0</FileVersion>
+		<InformationalVersion>2.1.0</InformationalVersion>
 		<PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<RepositoryUrl>https://github.com/italia/cie-aspnetcore</RepositoryUrl>
